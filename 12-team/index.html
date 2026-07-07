@@ -1,0 +1,319 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sutton CC Tournament Manager</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#075c36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sutton CC TM">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{--green:#075c36;--yellow:#ffd84d;--bg:#f4f7f4;--card:#fff;--ink:#101828;--muted:#667085;--border:#d0d5dd;--danger:#b42318;--blue:#175cd3}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+body.sun{--bg:#fffde7;--card:#fff;--ink:#000;--muted:#222;--border:#111}
+header{background:var(--green);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:10}
+h1{margin:0;font-size:24px}.sub{font-size:13px;margin-top:4px}
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;background:#fff;padding:8px;position:sticky;top:70px;z-index:9;border-bottom:1px solid #ddd}
+nav button{border:0;border-radius:13px;background:#e7f0eb;color:var(--green);padding:12px 5px;font-weight:900;font-size:15px}
+nav button.active{background:var(--yellow);color:#111}
+main{max-width:1180px;margin:auto;padding:12px}.page{display:none}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 2px 8px #0001}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.btn{border:0;border-radius:14px;padding:14px 18px;font-weight:900;font-size:17px;background:var(--green);color:#fff}.btn.full{width:100%}.btn.secondary{background:#e7f0eb;color:var(--green)}.btn.yellow{background:var(--yellow);color:#111}.btn.danger{background:var(--danger)}
+input,select,textarea{width:100%;padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;color:#111;font-size:18px}textarea{min-height:130px}label{display:block;font-weight:900;margin:10px 0 5px}
+.badge{display:inline-block;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:900;background:#eef2f6;color:#344054}.done{background:#d1fadf;color:#054f31}.live{background:#fff3cd;color:#7a4b00}.ko{background:#dbeafe;color:#1e3a8a}
+.scoreboard{background:#101828;color:#fff;text-align:center;border-radius:22px;padding:20px;margin:12px 0}.scoreboard .team{font-size:30px;color:var(--yellow);font-weight:900}.scoreboard .score{font-size:62px;font-weight:1000;line-height:1}.scoreboard .target{font-size:26px;font-weight:900;margin-top:8px}.innings{font-size:20px;color:var(--yellow);font-weight:900}
+.ballbar{height:16px;background:#e7f0eb;border-radius:999px;overflow:hidden;margin:12px 0}.ballbar span{display:block;height:100%;background:var(--yellow)}
+.scoring{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.scoring button{min-height:72px;border:0;border-radius:18px;font-size:24px;font-weight:1000;background:#e7f0eb;color:#073b24}.scoring .four,.scoring .six{background:#fff3bf;color:#573b00}.scoring .wicket,.scoring .danger{background:#fee4e2;color:#912018}.scoring .control{background:#dbeafe;color:#1e3a8a}
+.fixture{display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center;border:1px solid var(--border);border-radius:14px;padding:12px;margin:8px 0;background:#fff}.fixture.current{border:3px solid var(--yellow)}.fixture .id{font-weight:1000;color:var(--green)}
+table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}th,td{border-bottom:1px solid var(--border);padding:9px;text-align:left;font-size:14px}th{background:#eef2f6}tr:last-child td{border-bottom:0}
+.log{display:flex;flex-wrap:wrap;gap:6px}.pill{background:#eef2f6;border-radius:999px;padding:6px 10px;font-weight:800;color:#111}
+.notice{background:#fff8d6;color:#4a3700;border-left:6px solid var(--yellow);padding:12px;border-radius:10px}
+.modal{display:none;position:fixed;inset:0;background:#0009;z-index:100;align-items:center;justify-content:center;padding:16px}.modal.on{display:flex}.modalBox{background:#fff;color:#111;border-radius:22px;padding:18px;max-width:520px;width:100%}.choicegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.choicegrid button{padding:20px;border:0;border-radius:16px;font-size:24px;font-weight:1000;background:#e7f0eb;color:var(--green)}
+.toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#101828;color:#fff;border-radius:999px;padding:12px 18px;font-weight:900;z-index:101}
+@media(max-width:760px){nav{grid-template-columns:repeat(3,1fr)}.fixture{grid-template-columns:1fr}.scoreboard .score{font-size:50px}.scoring button{min-height:64px;font-size:21px}}
+
+.lockBanner{background:#101828;color:white;border-radius:18px;padding:14px;text-align:center;margin:12px 0;font-weight:900}
+.presentationBig{font-size:42px;font-weight:1000;text-align:center}
+.sponsorBox{background:linear-gradient(135deg,#075c36,#0b7a48);color:white;border-radius:24px;padding:28px;text-align:center}
+
+.quickExtras{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.quickExtras button{border:0;border-radius:14px;padding:14px 8px;font-weight:1000;font-size:18px;background:#e7f0eb;color:#073b24}
+.timelineItem{border-left:6px solid var(--yellow);padding:10px 14px;margin:10px 0;background:var(--card);border-radius:12px}
+.assistantBox{border:3px solid var(--yellow);background:#fff8d6;color:#4a3700;border-radius:16px;padding:14px;margin:12px 0}
+</style>
+</head>
+<body>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v4.2 presentation totals • offline • team scores only</div></header>
+<nav id="nav"></nav>
+<main>
+<section id="home" class="page active"></section>
+<section id="teams" class="page"></section>
+<section id="fixtures" class="page"></section>
+<section id="score" class="page"></section>
+<section id="tables" class="page"></section>
+<section id="knockout" class="page"></section>
+<section id="results" class="page"></section>
+<section id="awards" class="page"></section>
+<section id="presentation" class="page"></section>
+<section id="timeline" class="page"></section>
+<section id="tv" class="page"></section>
+<section id="settings" class="page"></section>
+</main>
+<div id="modal" class="modal"><div id="modalBox" class="modalBox"></div></div><div id="toast" class="toast"></div>
+<script>
+const STORE='scc_tm_v2_stable';
+const PAGES=[['home','Home'],['teams','Teams'],['fixtures','Fixtures'],['score','Score'],['tables','Tables'],['knockout','Knockout'],['results','Results'],['awards','Awards'],['presentation','Presentation'],['timeline','Timeline'],['tv','TV'],['settings','Settings']];
+let S=load()||fresh();let selected=S.selected||null;
+
+function blankTeams(){let t=[];['A','B','C','D'].forEach(g=>{for(let i=1;i<=3;i++)t.push({id:g+i,group:g,name:''})});return t}
+function fresh(){return{meta:{name:"Sutton CC Sponsors' 6-A-Side",date:'',venue:'Sutton Cricket Club',sun:false},teams:blankTeams(),matches:[],selected:null,winner:null,runnerUp:null,lastFinished:'',scoringLocked:false,sponsors:'Thank you to all our sponsors',announcement:''}}
+function load(){try{return JSON.parse(localStorage.getItem(STORE))}catch(e){return null}}
+function save(){S.selected=selected;localStorage.setItem(STORE,JSON.stringify(S))}
+function team(id){return S.teams.find(t=>t.id===id)||{id,name:id,group:''}}
+function teamName(id){const n=team(id).name;return n&&n.trim()?n.trim():id}
+function match(id){return S.matches.find(m=>m.id===id)}
+function overs(b){return Math.floor(b/6)+'.'+(b%6)}
+function maxBalls(m){return m.stage==='Group'?18:24}
+function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function toast(msg){toastEl=document.getElementById('toast');toastEl.textContent=msg;toastEl.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>toastEl.style.display='none',1400)}
+function closeModal(){modal.classList.remove('on')}
+function confirmBox(title,msg,yes){modalBox.innerHTML=`<h2>${title}</h2><p>${msg}</p><button class="btn danger full" id="yesBtn">YES</button><br><br><button class="btn secondary full" onclick="closeModal()">NO</button>`;modal.classList.add('on');yesBtn.onclick=()=>{closeModal();yes()}}
+function choiceBox(title,opts,cb){modalBox.innerHTML=`<h2>${title}</h2><div class="choicegrid">${opts.map(o=>`<button data-v="${o}">${o}</button>`).join('')}</div><br><button class="btn secondary full" onclick="closeModal()">Cancel</button>`;modal.classList.add('on');modalBox.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{closeModal();cb(Number(b.dataset.v))})}
+function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById('nav_'+id).classList.add('active');render()}
+function status(m){return `<span class="badge ${m.status==='Completed'?'done':m.status==='In Progress'?'live':m.stage==='Group'?'':'ko'}">${m.status}</span>`}
+function makeInn(bat){return{bat:bat,runs:0,wickets:0,balls:0,complete:false,log:[]}}
+function newMatch(id,stage,a,b,group=''){return{id,stage,group,a,b,status:'Not Started',innings:[makeInn(a),makeInn(b)],winner:null,result:'',locked:false,snap:null}}
+function matchName(m){return `${teamName(m.a)} v ${teamName(m.b)}`}
+function scoreLine(m){return `${teamName(m.innings[0].bat)} ${m.innings[0].runs}/${m.innings[0].wickets} (${overs(m.innings[0].balls)})<br>${teamName(m.innings[1].bat)} ${m.innings[1].runs}/${m.innings[1].wickets} (${overs(m.innings[1].balls)})`}
+
+function newTournament(){confirmBox('New Tournament','Clear teams, fixtures and results?',()=>{S=fresh();selected=null;save();show('teams')})}
+function pasteTeams(){const lines=(pasteBox.value||'').split(/\n/).map(x=>x.trim()).filter(Boolean);if(lines.length<12){alert('Paste 12 teams, one per line');return}S.teams.forEach((t,i)=>t.name=lines[i]||'');save();render()}
+function generate(){if(S.teams.some(t=>!t.name.trim())&&!confirm('Some teams blank. Continue?'))return;let ms=[],n=1;[[0,1],[0,2],[1,2]].forEach(pair=>{['A','B','C','D'].forEach(g=>{let ids=S.teams.filter(t=>t.group===g).map(t=>t.id);ms.push(newMatch('G'+n++,'Group',ids[pair[0]],ids[pair[1]],g))})});S.matches=ms;S.winner=null;S.runnerUp=null;S.lastFinished='';selected=ms[0].id;save();show('fixtures')}
+
+function currentInn(m){let idx=m.innings[0].complete?1:0;if(m.innings[1].complete)idx=1;return{inn:m.innings[idx],idx}}
+function nextMatch(){return S.matches.find(m=>m.status!=='Completed')||null}
+function activeMatch(){let sm=match(selected);if(sm&&sm.status!=='Completed')return sm;return nextMatch()}
+function selectMatch(id){selected=id;save();show('score')}
+function snapshot(m){m.snap=JSON.stringify({innings:m.innings,status:m.status,winner:m.winner,result:m.result,locked:m.locked});m.status='In Progress'}
+function undo(){const m=activeMatch();if(!m||!m.snap)return;Object.assign(m,JSON.parse(m.snap));m.snap=null;save();render();toast('Undo')}
+
+function scoreBall(kind,runs=0,opts={}){
+ if(lockCheck())return;
+ const m=activeMatch(); if(!m||m.locked)return;
+ const {inn,idx}=currentInn(m); if(inn.complete)return;
+ snapshot(m);
+ const before=inn.runs;
+ if(kind==='run'){inn.runs+=runs;inn.balls++ ;inn.log.push(String(runs))}
+ if(kind==='sixout'){inn.runs+=6;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('6 OUT')}
+ if(kind==='wicket'){inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('W')}
+ if(kind==='extra'){inn.runs+=2+runs;let finalOver=inn.balls>=maxBalls(m)-6;if(!finalOver)inn.balls++;inn.log.push(`${opts.label}+${runs}=${2+runs}${finalOver?' extra ball':''}`)}
+ if(kind==='lost6'){inn.runs-=10;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('Lost 6: -16 + W')}
+ if(inn.balls>maxBalls(m))inn.balls=maxBalls(m);
+ toast(inn.runs-before>=0?`+${inn.runs-before}`:`${inn.runs-before}`);
+ checkEnd(m,idx);
+}
+
+function checkEnd(m,idx){
+ const inn=m.innings[idx];
+ if(idx===0){
+   if(inn.wickets>=6 || inn.balls>=maxBalls(m)){
+     inn.complete=true;
+     m.innings[1].bat = m.innings[0].bat===m.a ? m.b : m.a;
+     toast('1st innings finished');
+   }
+   save();render();return;
+ }
+ const target=m.innings[0].runs+1;
+ if(inn.runs>=target){inn.complete=true;finish(m,true);return}
+ if(inn.wickets>=6 || inn.balls>=maxBalls(m)){inn.complete=true;finish(m,true);return}
+ save();render();
+}
+
+function finish(m,auto=false){
+ if(!m||m.locked)return;
+ if(!auto && !confirm('Finish and lock this match?'))return;
+ const a=m.innings[0],b=m.innings[1];a.complete=true;b.complete=true;m.status='Completed';m.locked=true;
+ if(a.runs>b.runs){m.winner=a.bat;m.result=`${teamName(a.bat)} beat ${teamName(b.bat)} by ${a.runs-b.runs} runs`}
+ else if(b.runs>a.runs){m.winner=b.bat;m.result=`${teamName(b.bat)} beat ${teamName(a.bat)} by ${6-b.wickets} wickets`}
+ else{m.winner=null;m.result=`${teamName(a.bat)} tied with ${teamName(b.bat)}${m.stage==='Group'?'':' - Bowl Off required'}`}
+ progressKO();
+ S.lastFinished=m.result; addTimeline(m.id+': '+m.result);
+ const nxt=nextMatch();selected=nxt?nxt.id:null;
+ save();render();showFinished(m.result);
+}
+function showFinished(result){modalBox.innerHTML=`<h2>✅ Game Finished</h2><p style="font-size:22px;font-weight:900">${esc(result)}</p><button class="btn full" onclick="closeModal();show('score')">Next Game</button><br><br><button class="btn secondary full" onclick="closeModal()">Close</button>`;modal.classList.add('on')}
+function endInn(){if(lockCheck())return;const m=activeMatch();if(!m)return;confirmBox('End innings','End this innings?',()=>{const ci=currentInn(m);snapshot(m);ci.inn.complete=true;if(ci.idx===0)m.innings[1].bat=m.innings[0].bat===m.a?m.b:m.a;else finish(m,true);save();render()})}
+function unlock(m){confirmBox('Unlock match','Unlock for editing?',()=>{m.locked=false;m.status='In Progress';save();render()})}
+function extra(label){if(lockCheck())return;choiceBox(`${label}: runs completed`,[0,1,2,3,4,6],r=>scoreBall('extra',r,{label}))}
+function lost6(){if(lockCheck())return;confirmBox('Lost Ball Six','Apply -16 runs and wicket?',()=>scoreBall('lost6'))}
+
+function rows(){let r={};S.teams.forEach(t=>r[t.id]={id:t.id,P:0,W:0,L:0,T:0,Pts:0,RF:0,BF:0,RA:0,BA:0,NRR:0});S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').forEach(m=>{const a=m.innings[0],b=m.innings[1];[[a,b],[b,a]].forEach(([x,y])=>{let q=r[x.bat];q.P++;q.RF+=x.runs;q.BF+=Math.max(1,x.balls);q.RA+=y.runs;q.BA+=Math.max(1,y.balls)});if(m.winner){r[m.winner].W++;r[m.winner].Pts+=2;r[m.winner===a.bat?b.bat:a.bat].L++}else{[a.bat,b.bat].forEach(id=>{r[id].T++;r[id].Pts++})}});Object.values(r).forEach(x=>x.NRR=(x.RF/(x.BF/6||1))-(x.RA/(x.BA/6||1)));return r}
+function rank(g){const r=rows();return S.teams.filter(t=>t.group===g).map(t=>r[t.id]).sort((a,b)=>b.Pts-a.Pts||b.NRR-a.NRR||b.RF-a.RF)}
+function progressKO(){if(!match('QF1')&&S.matches.filter(m=>m.stage==='Group').length===12&&S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').length===12){const A=rank('A'),B=rank('B'),C=rank('C'),D=rank('D');S.matches.push(newMatch('QF1','Quarter Final',A[0].id,B[1].id),newMatch('QF2','Quarter Final',B[0].id,A[1].id),newMatch('QF3','Quarter Final',C[0].id,D[1].id),newMatch('QF4','Quarter Final',D[0].id,C[1].id))}
+ if(!match('SF1')&&['QF1','QF2','QF3','QF4'].every(id=>match(id)?.status==='Completed'&&match(id)?.winner)){S.matches.push(newMatch('SF1','Semi Final',match('QF1').winner,match('QF3').winner),newMatch('SF2','Semi Final',match('QF2').winner,match('QF4').winner))}
+ if(!match('FINAL')&&['SF1','SF2'].every(id=>match(id)?.status==='Completed'&&match(id)?.winner)){S.matches.push(newMatch('FINAL','Final',match('SF1').winner,match('SF2').winner))}
+ const f=match('FINAL');if(f?.status==='Completed'&&f.winner){S.winner=f.winner;S.runnerUp=f.winner===f.a?f.b:f.a}
+}
+function tableHTML(g){return `<table><tr><th>Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th><th>Q</th></tr>${rank(g).map((x,i)=>`<tr><td>${teamName(x.id)}</td><td>${x.P}</td><td>${x.W}</td><td>${x.L}</td><td>${x.T}</td><td><b>${x.Pts}</b></td><td>${x.NRR.toFixed(2)}</td><td>${i<2?'✅':''}</td></tr>`).join('')}</table>`}
+function fixture(m){let txt=m.status==='Completed'?'✅ Complete':m.innings[0].complete?'🟡 2nd innings':m.status==='In Progress'?'🔴 Live':'⚪ Not started';return `<div class="fixture ${selected===m.id?'current':''}"><div class="id">${m.id}<br><span class="muted">${m.stage}</span></div><div><b>${matchName(m)}</b><br><span class="muted">${txt}</span><br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}<br>${m.status!=='Completed'?`<button class="btn secondary" onclick="selectMatch('${m.id}')">Score</button>`:''}</div></div>`}
+
+function backup(){download(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),'SuttonCC_backup.json')}
+function restoreFile(file){const r=new FileReader();r.onload=()=>{S=JSON.parse(r.result);selected=S.selected;save();render();toast('Restored')};r.readAsText(file)}
+function exportCSV(){let csv='Match,Stage,Team 1,Team 2,Score 1,Score 2,Result\n';S.matches.filter(m=>m.status==='Completed').forEach(m=>csv+=`${m.id},${m.stage},${teamName(m.innings[0].bat)},${teamName(m.innings[1].bat)},${m.innings[0].runs}/${m.innings[0].wickets},${m.innings[1].runs}/${m.innings[1].wickets},"${m.result}"\n`);download(new Blob([csv],{type:'text/csv'}),'SuttonCC_results.csv')}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}
+
+
+function tournamentStats(){
+ const done=S.matches.filter(m=>m.status==='Completed');
+ let highest=null, lowest=null, biggest=null, closest=null, chase=null, firstTotal=0, firstCount=0, winTotal=0, winCount=0;
+ done.forEach(m=>{
+   const a=m.innings[0], b=m.innings[1];
+   [a,b].forEach(i=>{
+     const item={match:m.id,team:teamName(i.bat),runs:i.runs,wickets:i.wickets};
+     if(!highest || item.runs>highest.runs) highest=item;
+     if(!lowest || item.runs<lowest.runs) lowest=item;
+   });
+   firstTotal+=a.runs; firstCount++;
+   if(m.winner){
+     const winnerInn=m.winner===a.bat?a:b;
+     winTotal+=winnerInn.runs; winCount++;
+     const margin=Math.abs(a.runs-b.runs);
+     const rec={match:m.id,result:m.result,margin};
+     if(!biggest || margin>biggest.margin) biggest=rec;
+     if(!closest || margin<closest.margin) closest=rec;
+     if(m.winner===b.bat){
+       const cr={match:m.id,result:m.result,runs:b.runs};
+       if(!chase || cr.runs>chase.runs) chase=cr;
+     }
+   }
+ });
+ let totalRuns=0,totalWickets=0,totalInnings=0;
+ done.forEach(m=>{
+   m.innings.forEach(i=>{ totalRuns+=i.runs; totalWickets+=i.wickets; totalInnings++; });
+ });
+ return {
+   highest, lowest, biggest, closest, chase,
+   totalRuns,totalWickets,totalInnings,
+   avgFirst:firstCount?(firstTotal/firstCount).toFixed(1):'0.0',
+   avgWin:winCount?(winTotal/winCount).toFixed(1):'0.0'
+ };
+}
+
+
+
+function addTimeline(text){
+  S.timeline=S.timeline||[];
+  const d=new Date();
+  const time=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  S.timeline.unshift({time,text});
+  S.timeline=S.timeline.slice(0,100);
+}
+function assistantMessage(){
+  const groupDone=S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').length;
+  const qf=!!match('QF1');
+  const final=match('FINAL');
+  if(groupDone===12 && !qf) return '⚠️ Group stage complete — generate quarter finals.';
+  if(['QF1','QF2','QF3','QF4'].every(id=>match(id)?.status==='Completed') && !match('SF1')) return '⚠️ Quarter finals complete — semi finals are ready to generate.';
+  if(['SF1','SF2'].every(id=>match(id)?.status==='Completed') && !match('FINAL')) return '⚠️ Semi finals complete — final is ready.';
+  if(final?.status==='Completed') return '🏆 Final complete — open Presentation Mode.';
+  const n=nextMatch();
+  return n ? `📢 Next match: ${n.id} ${matchName(n)}` : 'Tournament ready.';
+}
+function quickExtra(label,runs){scoreBall('extra',runs,{label})}
+
+function toggleScoringLock(){
+  S.scoringLocked=!S.scoringLocked;
+  save();
+  render();
+  toast(S.scoringLocked?'Scoring locked':'Scoring unlocked');
+}
+function unlockScoring(){
+  S.scoringLocked=false;
+  save();
+  render();
+  toast('Scoring unlocked');
+}
+function lockCheck(){
+  if(S.scoringLocked){
+    toast('Scoring is locked');
+    return true;
+  }
+  return false;
+}
+function copyPresentationSummary(){
+  const st=tournamentStats();
+  let txt=`🏏 ${S.meta.name}\n\n`;
+  if(S.winner) txt+=`🏆 Winners: ${teamName(S.winner)}\n🥈 Runners Up: ${teamName(S.runnerUp)}\n\n`;
+  txt+=`Total runs scored: ${st.totalRuns||0}\nTotal wickets taken: ${st.totalWickets||0}\n`;
+  if(st.highest) txt+=`Highest score: ${st.highest.team} ${st.highest.runs}/${st.highest.wickets}\n`;
+  if(st.chase) txt+=`Highest chase: ${st.chase.result}\n`;
+  if(st.closest) txt+=`Closest match: ${st.closest.result}\n`;
+  if(st.biggest) txt+=`Biggest win: ${st.biggest.result}\n`;
+  txt+=`\nThank you to everyone who supported the day.`;
+  navigator.clipboard?.writeText(txt).then(()=>toast('Presentation summary copied')).catch(()=>alert(txt));
+}
+
+function render(){document.body.classList.toggle('sun',S.meta.sun);title.textContent=S.meta.name;progressKO();renderHome();renderTeams();renderFixtures();renderScore();renderTables();renderKnockout();renderResults();renderAwards();renderPresentation();renderTimeline();renderTV();renderSettings()}
+function renderHome(){const done=S.matches.filter(m=>m.status==='Completed').length,total=S.matches.length||12,nxt=nextMatch();home.innerHTML=`${S.lastFinished?`<div class="card notice"><h2>✅ Last Game Finished</h2><p><b>${esc(S.lastFinished)}</b></p></div>`:''}${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div><div>Runners Up: ${teamName(S.runnerUp)}</div></div>`:''}<div class="assistantBox"><b>Tournament Assistant</b><br>${assistantMessage()}</div><div class="grid"><div class="card"><h2>Tournament</h2><button class="btn full" onclick="newTournament()">New Tournament</button><br><br><button class="btn yellow full" onclick="show('teams')">Team Setup</button><br><br><button class="btn secondary full" onclick="show('presentation')">Presentation Mode</button></div><div class="card"><h2>Progress</h2><p><span class="badge done">${done}/${total} completed</span></p>${nxt?`<p><b>Next:</b> ${nxt.id} ${matchName(nxt)}</p><button class="btn secondary" onclick="selectMatch('${nxt.id}')">Open Next</button>`:'<p>No matches left.</p>'}</div><div class="card"><h2>Format</h2><p>Groups A, B, C, D. Top 2 qualify. QF → SF → Final.</p><p><button class="btn secondary" onclick="show('awards')">View Awards</button></p></div></div>`}
+function renderTeams(){let html=`<div class="card"><h2>Teams</h2><textarea id="pasteBox" placeholder="Paste 12 team names, one per line"></textarea><br><br><button class="btn secondary" onclick="pasteTeams()">Paste Teams</button></div><div class="card">`;['A','B','C','D'].forEach(g=>{html+=`<h3>Group ${g}</h3>`;S.teams.filter(t=>t.group===g).forEach(t=>html+=`<label>${t.id}</label><input value="${esc(t.name)}" onchange="team('${t.id}').name=this.value;save();render()">`)});html+=`<br><br><button class="btn full" onclick="generate()">Generate Fixtures</button></div>`;teams.innerHTML=html}
+function renderFixtures(){fixtures.innerHTML=`<div class="card"><h2>Fixtures</h2><p>Order: A, B, C, D each round.</p>${S.matches.length?S.matches.map(fixture).join(''):'<p>No fixtures yet.</p>'}</div>`}
+function renderScore(){const m=activeMatch();if(!m){score.innerHTML='<div class="card"><h2>Score</h2><p>No unfinished matches.</p></div>';return}selected=m.id;const {inn}=currentInn(m),target=m.innings[0].complete?m.innings[0].runs+1:null,left=maxBalls(m)-inn.balls,finalOver=inn.balls>=maxBalls(m)-6;score.innerHTML=`${S.lastFinished?`<div class="card notice"><h2>✅ Game Finished</h2><p><b>${esc(S.lastFinished)}</b></p></div>`:''}<div class="card noPrint"><label>Match</label><select onchange="selected=this.value;save();render()">${S.matches.filter(x=>x.status!=='Completed').map(x=>`<option value="${x.id}" ${x.id===m.id?'selected':''}>${x.id} - ${matchName(x)}</option>`).join('')}</select></div><div class="scoreboard"><div class="team">${teamName(inn.bat)}</div><div class="innings">${m.innings[0].complete?'2nd INNINGS':'1st INNINGS'}</div><div class="score">${inn.runs}/${inn.wickets}</div><div>${overs(inn.balls)} overs • ${left} balls left</div><div class="ballbar"><span style="width:${Math.min(100,inn.balls/maxBalls(m)*100)}%"></span></div>${target?`<div class="target">Target ${target}</div><div>Need ${Math.max(0,target-inn.runs)} from ${left}</div>`:''}<div class="muted">${finalOver?'Final over: wides/no-balls do NOT count as a ball':'Wides/no-balls count as a ball before final over'}</div></div>${S.scoringLocked?`<div class="lockBanner">🔒 Scoring Locked<br><button class="btn yellow" onclick="unlockScoring()">Unlock Scoring</button></div>`:`<div class="card noPrint"><button class="btn secondary full" onclick="toggleScoringLock()">🔒 Lock Scoring</button></div>`}<div class="card"><div class="scoring"><button onclick="scoreBall('run',0)">0</button><button onclick="scoreBall('run',1)">1</button><button onclick="scoreBall('run',2)">2</button><button onclick="scoreBall('run',3)">3</button><button class="four" onclick="scoreBall('run',4)">4</button><button class="six" onclick="scoreBall('sixout')">6 & OUT</button><button onclick="extra('Wide')">Wide</button><button onclick="extra('No Ball')">No Ball</button><button class="wicket" onclick="scoreBall('wicket')">Wicket</button><button class="danger" onclick="lost6()">Lost Ball 6</button><button class="control" onclick="undo()">Undo</button><button class="control" onclick="endInn()">End Innings</button></div><br><h3>Quick Wides</h3><div class="quickExtras"><button onclick="quickExtra('Wide',0)">Wide 2</button><button onclick="quickExtra('Wide',1)">Wide +1</button><button onclick="quickExtra('Wide',2)">Wide +2</button><button onclick="quickExtra('Wide',3)">Wide +3</button><button onclick="quickExtra('Wide',4)">Wide +4</button><button onclick="quickExtra('Wide',6)">Wide +6</button></div><h3>Quick No Balls</h3><div class="quickExtras"><button onclick="quickExtra('No Ball',0)">NB 2</button><button onclick="quickExtra('No Ball',1)">NB +1</button><button onclick="quickExtra('No Ball',2)">NB +2</button><button onclick="quickExtra('No Ball',3)">NB +3</button><button onclick="quickExtra('No Ball',4)">NB +4</button><button onclick="quickExtra('No Ball',6)">NB +6</button></div><br><button class="btn full" onclick="finish(activeMatch(),false)">Finish Match</button></div><div class="card"><h3>Match Score</h3><p>${scoreLine(m)}</p><p>${status(m)}</p><p>${m.result}</p><h3>Ball Log</h3><div class="log">${inn.log.map(x=>`<span class="pill">${esc(x)}</span>`).join('')||'<span class="muted">No balls yet</span>'}</div>${m.locked?`<br><button class="btn danger" onclick="unlock(activeMatch())">Unlock</button>`:''}</div>`}
+function renderTables(){tables.innerHTML='<div class="card"><h2>Tables</h2></div>'+['A','B','C','D'].map(g=>`<div class="card"><h3>Group ${g}</h3>${tableHTML(g)}</div>`).join('')}
+function renderKnockout(){const groups=[['Quarter Finals',['QF1','QF2','QF3','QF4']],['Semi Finals',['SF1','SF2']],['Final',['FINAL']]];knockout.innerHTML=`${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div></div>`:''}<div class="grid">${groups.map(([title,ids])=>`<div class="card"><h2>${title}</h2>${ids.map(id=>{let m=match(id);return m?`<div class="fixture"><div class="id">${id}</div><div>${matchName(m)}<br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}${m.status!=='Completed'?`<br><button class="btn secondary" onclick="selectMatch('${id}')">Score</button>`:''}</div></div>`:`<div class="fixture"><div class="id">${id}</div><div>TBC</div></div>`}).join('')}</div>`).join('')}</div>`}
+function renderResults(){const done=S.matches.filter(m=>m.status==='Completed');results.innerHTML=`<div class="card"><h2>Results</h2><button class="btn secondary" onclick="exportCSV()">Export CSV</button></div><div class="card"><table><tr><th>Match</th><th>Score</th><th>Result</th></tr>${done.map(m=>`<tr><td>${m.id}<br>${matchName(m)}</td><td>${scoreLine(m)}</td><td>${m.result}</td></tr>`).join('')}</table></div>`}
+
+function renderAwards(){
+ const st=tournamentStats();
+ awards.innerHTML=`<div class="card"><h2>Awards / Team Stats</h2><p class="muted">Team awards only — no individual players.</p></div>
+ <div class="grid">
+  <div class="card"><h2>🏏 Highest Team Score</h2><p><b>${st.highest?st.highest.team+' '+st.highest.runs+'/'+st.highest.wickets:'No matches yet'}</b></p><p class="muted">${st.highest?st.highest.match:''}</p></div>
+  <div class="card"><h2>🛡 Lowest Team Score</h2><p><b>${st.lowest?st.lowest.team+' '+st.lowest.runs+'/'+st.lowest.wickets:'No matches yet'}</b></p><p class="muted">${st.lowest?st.lowest.match:''}</p></div>
+  <div class="card"><h2>💥 Biggest Win</h2><p><b>${st.biggest?st.biggest.result:'No matches yet'}</b></p></div>
+  <div class="card"><h2>🔥 Closest Match</h2><p><b>${st.closest?st.closest.result:'No matches yet'}</b></p></div>
+  <div class="card"><h2>🎯 Highest Chase</h2><p><b>${st.chase?st.chase.result:'No successful chase yet'}</b></p></div>
+  <div class="card"><h2>📊 Averages</h2><p>Average first innings: <b>${st.avgFirst}</b></p><p>Average winning score: <b>${st.avgWin}</b></p></div>
+  <div class="card"><h2>🏏 Total Runs</h2><p class="presentationBig">${st.totalRuns||0}</p></div>
+  <div class="card"><h2>🎯 Total Wickets</h2><p class="presentationBig">${st.totalWickets||0}</p></div>
+ </div>
+ ${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div><div>🥈 Runners Up: ${teamName(S.runnerUp)}</div></div>`:''}`;
+}
+
+
+function renderPresentation(){
+ const st=tournamentStats();
+ presentation.innerHTML=`<div class="card"><h2>Presentation Mode</h2><button class="btn yellow" onclick="copyPresentationSummary()">Copy Presentation Summary</button></div>
+ ${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div><div class="target">🥈 Runners Up: ${teamName(S.runnerUp)}</div></div>`:`<div class="scoreboard"><div class="team">Tournament in progress</div><div class="score">${S.matches.filter(m=>m.status==='Completed').length}/${S.matches.length||12}</div><div>matches completed</div></div>`}
+ <div class="grid">
+  <div class="card"><h2>🏏 Total Runs Scored</h2><p class="presentationBig">${st.totalRuns||0}</p></div>
+  <div class="card"><h2>🎯 Total Wickets Taken</h2><p class="presentationBig">${st.totalWickets||0}</p></div>
+  <div class="card"><h2>Highest Score</h2><p class="presentationBig">${st.highest?st.highest.team+' '+st.highest.runs+'/'+st.highest.wickets:'-'}</p></div>
+  <div class="card"><h2>Highest Chase</h2><p><b>${st.chase?st.chase.result:'-'}</b></p></div>
+  <div class="card"><h2>Closest Match</h2><p><b>${st.closest?st.closest.result:'-'}</b></p></div>
+  <div class="card"><h2>Biggest Win</h2><p><b>${st.biggest?st.biggest.result:'-'}</b></p></div>
+ </div>
+ <div class="sponsorBox"><h2>💚 Thank You</h2><p class="presentationBig">${esc(S.sponsors||'Thank you to all our sponsors')}</p></div>`;
+}
+
+
+function renderTimeline(){
+ const items=S.timeline||[];
+ timeline.innerHTML=`<div class="card"><h2>Tournament Timeline</h2><p class="muted">A running history of the day.</p></div>
+ <div class="card">${items.length?items.map(i=>`<div class="timelineItem"><b>${esc(i.time)}</b><br>${esc(i.text)}</div>`).join(''):'<p>No timeline events yet.</p>'}</div>`;
+}
+
+function renderTV(){const m=activeMatch();if(!m){tv.innerHTML='<div class="card"><h2>TV</h2><p>No live match.</p></div>';return}const {inn}=currentInn(m),target=m.innings[0].complete?m.innings[0].runs+1:null;tv.innerHTML=`<div class="scoreboard"><div class="team">${teamName(inn.bat)}</div><div class="innings">${m.innings[0].complete?'2nd INNINGS':'1st INNINGS'}</div><div class="score">${inn.runs}/${inn.wickets}</div><div>${overs(inn.balls)} overs</div>${target?`<div class="target">Need ${Math.max(0,target-inn.runs)}</div>`:''}</div><div class="card"><h2>Current</h2><p>${m.id} ${matchName(m)}</p></div>`}
+function renderSettings(){settings.innerHTML=`<div class="card"><h2>Settings</h2><label>Tournament name</label><input value="${esc(S.meta.name)}" onchange="S.meta.name=this.value;save();render()"><label>Date</label><input value="${esc(S.meta.date)}" onchange="S.meta.date=this.value;save();render()"><label>Venue</label><input value="${esc(S.meta.venue)}" onchange="S.meta.venue=this.value;save();render()"><label>Sponsor thank you text</label><input value="${esc(S.sponsors||'')}" onchange="S.sponsors=this.value;save();render()"><br><br><button class="btn yellow" onclick="S.meta.sun=!S.meta.sun;save();render()">Outdoor Mode</button></div><div class="card"><h2>Install on iPad</h2><p>Open this app in Safari, tap Share, then Add to Home Screen. Test it before the day, then it will work offline from the iPad.</p></div><div class="card"><h2>Backup</h2><button class="btn" onclick="backup()">Export Backup</button><br><br><input type="file" onchange="restoreFile(this.files[0])"></div><div class="card"><button class="btn danger full" onclick="newTournament()">New Tournament / Clear All</button></div>`}
+function init(){nav.innerHTML=PAGES.map(p=>`<button id="nav_${p[0]}" onclick="show('${p[0]}')">${p[1]}</button>`).join('');document.getElementById('nav_home').classList.add('active');render()}init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body></html>
