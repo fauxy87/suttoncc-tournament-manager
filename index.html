@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.5 • Confirm Loop Fix • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.6 • Semi Final Pairing • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -540,7 +540,7 @@ function progressKO(){
   }
  }
  if(!getMatch('SF1')&&['QF1','QF2','QF3','QF4'].every(id=>getMatch(id)?.status==='Completed'&&getMatch(id)?.winner)){
-  S.matches.push(newMatch('SF1','Semi Final',getMatch('QF1').winner,getMatch('QF3').winner),newMatch('SF2','Semi Final',getMatch('QF2').winner,getMatch('QF4').winner));
+  S.matches.push(newMatch('SF1','Semi Final',getMatch('QF1').winner,getMatch('QF2').winner),newMatch('SF2','Semi Final',getMatch('QF3').winner,getMatch('QF4').winner));
  }
  if(!getMatch('FINAL')&&['SF1','SF2'].every(id=>getMatch(id)?.status==='Completed'&&getMatch(id)?.winner)){
   S.matches.push(newMatch('FINAL','Final',getMatch('SF1').winner,getMatch('SF2').winner));
