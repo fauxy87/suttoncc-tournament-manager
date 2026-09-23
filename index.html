@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sutton CC 10 Team Tournament Manager</title>
+<title>Sutton CC Tournament Manager</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#075c36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sutton Tournament">
 <style>
 :root{--green:#075c36;--yellow:#ffd84d;--bg:#f4f7f4;--card:#fff;--ink:#101828;--muted:#667085;--border:#d0d5dd;--danger:#b42318}
 *{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
@@ -27,12 +31,58 @@ table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(
 .log{display:flex;flex-wrap:wrap;gap:6px}.pill{background:#eef2f6;border-radius:999px;padding:6px 10px;font-weight:800;color:#111}.notice{background:#fff8d6;color:#4a3700;border-left:6px solid var(--yellow);padding:12px;border-radius:10px}
 .modal{display:none;position:fixed;inset:0;background:#0009;z-index:100;align-items:center;justify-content:center;padding:16px}.modal.on{display:flex}.modalBox{background:#fff;color:#111;border-radius:22px;padding:18px;max-width:520px;width:100%}.choicegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.choicegrid button{padding:20px;border:0;border-radius:16px;font-size:24px;font-weight:1000;background:#e7f0eb;color:var(--green)}
 .toast{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#101828;color:#fff;border-radius:999px;padding:12px 18px;font-weight:900;z-index:101}
-.presentationBig{font-size:42px;font-weight:1000;text-align:center}
+.presentationBig{font-size:42px;font-weight:1000;text-align:center}.saveflag{position:fixed;right:10px;bottom:10px;background:#075c36;color:#fff;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:900;z-index:50}
 @media(max-width:760px){nav{grid-template-columns:repeat(3,1fr);top:70px}.fixture{grid-template-columns:1fr}.scoreboard .score{font-size:50px}.scoring button{min-height:64px;font-size:21px}}
+</style>
+
+<style>
+/* v5.7 match-day scoring improvements */
+#page-score .card{max-width:1000px;margin-left:auto;margin-right:auto}
+#page-score button{min-height:58px;font-size:18px;font-weight:900;touch-action:manipulation}
+#page-score select{min-height:52px;font-size:18px}
+#page-score .scoreHero{position:sticky;top:0;z-index:20;background:#fff;border:2px solid #075c36;border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 3px 12px rgba(0,0,0,.12)}
+#page-score .scoreHero .big{font-size:30px;font-weight:1000;line-height:1.15}
+#page-score .scoreHero .target{font-size:20px;font-weight:900;margin-top:6px}
+#page-score .scoreHero .innings{font-size:15px;font-weight:800;opacity:.8}
+@media (max-width:700px){
+ #page-score button{min-height:64px;font-size:19px}
+ #page-score .scoreHero .big{font-size:27px}
+}
+</style>
+<style>
+.setupgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.groupbox{border:1px solid #ddd;border-radius:12px;padding:10px;margin:8px 0}
+.groupbox h3{margin:0 0 8px}
+</style>
+<style id="ipad-ready">
+html{-webkit-text-size-adjust:100%;touch-action:manipulation}
+body{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+button,.btn,input,select{min-height:48px;font-size:16px}
+button,.btn{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+nav{position:sticky;top:0;z-index:100;padding-top:env(safe-area-inset-top)}
+.scoreboard{position:sticky;top:64px;z-index:80}
+.fixture{gap:10px}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{min-width:560px}
+@media(max-width:820px){
+ body{font-size:16px}
+ .wrap,.container,main{padding-left:10px!important;padding-right:10px!important}
+ .grid{grid-template-columns:1fr!important}
+ .btn{padding:12px 14px}
+ .scoreboard .score{font-size:clamp(34px,9vw,62px)}
+ .fixture{grid-template-columns:minmax(42px,auto) 1fr!important}
+ .fixture>div:last-child{grid-column:1/-1}
+}
+@media(orientation:landscape) and (min-width:700px){
+ .scoring-grid,.score-buttons{grid-template-columns:repeat(5,minmax(90px,1fr))!important}
+}
+@media(orientation:portrait) and (max-width:820px){
+ .scoring-grid,.score-buttons{grid-template-columns:repeat(3,minmax(82px,1fr))!important}
+}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">10-team format • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.2 • iPad Ready • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -44,17 +94,260 @@ table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(
 <section id="results" class="page"></section>
 <section id="awards" class="page"></section>
 <section id="settings" class="page"></section>
-</main>
+</main><div class="saveflag" id="saveflag">Saved locally ✓</div>
 <div id="modal" class="modal"><div id="modalBox" class="modalBox"></div></div><div id="toast" class="toast"></div>
 <script>
+let lastScoreTap=0;
+
 const STORE='scc_10team_v5_stable';
 const PAGES=[['home','Home'],['teams','Teams'],['fixtures','Fixtures'],['score','Score'],['tables','Tables'],['knockout','Knockout'],['results','Results'],['awards','Awards'],['settings','Settings']];
 let S=load()||fresh();let selected=S.selected||null;
 
+
+function tournamentConfig(){
+ S.config=S.config||{teamCount:10,groupCount:4,groupSizes:[3,3,2,2],preset:'sutton10',qualifyPerGroup:1,bestRemaining:4,knockoutSize:8};
+ if(S.config.qualifyPerGroup==null)S.config.qualifyPerGroup=1;
+ if(S.config.bestRemaining==null)S.config.bestRemaining=4;
+ if(S.config.knockoutSize==null)S.config.knockoutSize=8;
+ return S.config;
+}
+function balancedSizes(teamCount,groupCount){
+ const a=Array(groupCount).fill(Math.floor(teamCount/groupCount));
+ for(let i=0;i<teamCount%groupCount;i++)a[i]++;
+ return a;
+}
+function configureTournament(){
+ const tc=Math.max(2,Math.min(32,Number(document.getElementById('cfgTeams').value||10)));
+ const gc=Math.max(1,Math.min(8,Number(document.getElementById('cfgGroups').value||4)));
+ if(gc>tc){alert('You cannot have more groups than teams.');return;}
+ if(!confirm('Change tournament to '+tc+' teams in '+gc+' groups? Existing fixtures/results will be reset.'))return;
+ const old=(S.teams||[]).map(x=>typeof x==='string'?x:(x.name||''));
+ const sizes=balancedSizes(tc,gc);
+ const oldcfg=tournamentConfig();
+ S.config={teamCount:tc,groupCount:gc,groupSizes:sizes,preset:(tc===10&&gc===4?'sutton10':'custom'),
+ qualifyPerGroup:Number(oldcfg.qualifyPerGroup||1),bestRemaining:Number(oldcfg.bestRemaining||0),knockoutSize:Number(oldcfg.knockoutSize||8)};
+ S.teams=[];
+ for(let i=0;i<tc;i++)S.teams.push({id:'T'+(i+1),name:old[i]||('Team '+(i+1)),group:''});
+ assignGroupsBalanced();
+ S.matches=[];selected=null;save();render();
+}
+function assignGroupsBalanced(){
+ const c=tournamentConfig(), letters='ABCDEFGH';
+ let ix=0;
+ for(let g=0;g<c.groupCount;g++){
+  for(let j=0;j<c.groupSizes[g];j++){
+   if(S.teams[ix]){
+    if(typeof S.teams[ix]==='string')S.teams[ix]={id:'T'+(ix+1),name:S.teams[ix],group:letters[g]};
+    else {S.teams[ix].id=S.teams[ix].id||('T'+(ix+1));S.teams[ix].group=letters[g];}
+   }
+   ix++;
+  }
+ }
+}
+
+
+function groupEditorHTML(){
+ const c=tournamentConfig(), letters='ABCDEFGH';
+ let out='';
+ for(let g=0;g<c.groupCount;g++){
+  const L=letters[g], members=S.teams.filter(t=>(typeof t==='object'?t.group:'')===L);
+  out+='<div class="groupbox"><h3>Group '+L+'</h3>';
+  for(let i=0;i<c.groupSizes[g];i++){
+   const t=members[i], name=t?(typeof t==='string'?t:(t.name||'')):'';
+   out+='<label>Team '+(i+1)+'<input class="groupTeamInput" data-group="'+L+'" data-slot="'+i+'" value="'+esc(name)+'" placeholder="Team name"></label>';
+  }
+  out+='</div>';
+ }
+ return out;
+}
+function saveGroupTeams(){
+ const inputs=[...document.querySelectorAll('.groupTeamInput')];
+ const names=inputs.map(x=>x.value.trim());
+ if(names.some(x=>!x)){alert('Please enter a name for every team.');return;}
+ const lower=names.map(x=>x.toLowerCase());
+ if(new Set(lower).size!==lower.length){alert('Each team name must be unique.');return;}
+ if((S.matches||[]).some(m=>m.status==='Completed') && !confirm('Matches have already been completed. Changing the groups can affect the tournament. Continue?'))return;
+ if((S.matches||[]).length && !(S.matches||[]).some(m=>m.status==='Completed') && !confirm('Changing team groups will clear the current fixtures. Continue?'))return;
+ S.teams=inputs.map(x=>({name:x.value.trim(),group:x.dataset.group}));
+ S.matches=[];selected=null;save();render();
+ alert('Groups saved. You can now generate the fixtures.');
+}
+function groupSizeInputs(){
+ const c=tournamentConfig(), letters='ABCDEFGH';
+ return c.groupSizes.slice(0,c.groupCount).map((n,i)=>
+  '<label><b>Group '+letters[i]+'</b><input class="groupSizeInput" data-group="'+i+'" type="number" min="1" max="'+c.teamCount+'" value="'+n+'"></label>'
+ ).join('');
+}
+function saveGroupSizes(){
+ const c=tournamentConfig();
+ const vals=[...document.querySelectorAll('.groupSizeInput')].map(x=>Math.max(1,Number(x.value||1)));
+ const total=vals.reduce((a,b)=>a+b,0);
+ if(vals.length!==c.groupCount){alert('Please reopen Settings and try again.');return;}
+ if(total!==c.teamCount){
+  alert('The group sizes add up to '+total+', but you have '+c.teamCount+' teams. Please adjust them so they total '+c.teamCount+'.');
+  return;
+ }
+ if(!confirm('Save these group sizes? Existing fixtures/results will be reset.'))return;
+ c.groupSizes=vals;
+ c.preset=(c.teamCount===10&&c.groupCount===4&&vals.join(',')==='3,3,2,2')?'sutton10':'custom';
+ assignGroupsBalanced();
+ S.matches=[];selected=null;save();render();
+ alert('Group sizes saved. Teams have been assigned to Groups A-'+String.fromCharCode(64+c.groupCount)+'.');
+}
+function resetBalancedGroups(){
+ const c=tournamentConfig();
+ c.groupSizes=balancedSizes(c.teamCount,c.groupCount);
+ assignGroupsBalanced();S.matches=[];selected=null;save();render();
+}
+function setGroupSize(g,val){
+ const c=tournamentConfig(), n=Math.max(1,Number(val||1));
+ const proposed=[...c.groupSizes]; proposed[g]=n;
+ if(proposed.reduce((a,b)=>a+b,0)!==c.teamCount){alert('Group sizes must add up to '+c.teamCount+' teams.');return;}
+ c.groupSizes=proposed;assignGroupsBalanced();S.matches=[];save();render();
+}
+
+function saveQualificationSetup(){
+ const c=tournamentConfig();
+ const q=Math.max(1,Number(document.getElementById('cfgQualify').value||1));
+ const br=Math.max(0,Number(document.getElementById('cfgBestRemaining').value||0));
+ const ks=Number(document.getElementById('cfgKnockoutSize').value||8);
+ const automatic=q*c.groupCount;
+ if(automatic+br!==ks){
+  alert('Qualification currently gives '+(automatic+br)+' teams, but a '+ks+'-team knockout needs '+ks+'. Please adjust the numbers.');
+  return;
+ }
+ if(automatic+br>c.teamCount){
+  alert('You cannot qualify more teams than are in the tournament.');
+  return;
+ }
+ c.qualifyPerGroup=q;c.bestRemaining=br;c.knockoutSize=ks;
+ save();render();
+ alert('Qualification setup saved.');
+}
+function knockoutLabel(){
+ const k=Number(tournamentConfig().knockoutSize||8);
+ return k===2?'Final':k===4?'Semi-finals':k===8?'Quarter-finals':'Knockout';
+}
+
+function groupMatchesInOrder(){
+ return (S.matches||[]).filter(m=>m.stage==='Group');
+}
+function inningsComplete(m,n){
+ const inn=m&&m.innings?m.innings[n-1]:null;
+ return !!(inn && inn.complete);
+}
+function nextGroupScoringStep(){
+ const ms=groupMatchesInOrder();
+ for(let i=0;i<ms.length;i+=2){
+  const m1=ms[i],m2=ms[i+1];
+  if(m1 && !inningsComplete(m1,1))return {m:m1,label:'Fixture '+(i+1)+' • 1st innings'};
+  if(m2 && !inningsComplete(m2,1))return {m:m2,label:'Fixture '+(i+2)+' • 1st innings'};
+  if(m1 && m1.status!=='Completed')return {m:m1,label:'Fixture '+(i+1)+' • 2nd innings'};
+  if(m2 && m2.status!=='Completed')return {m:m2,label:'Fixture '+(i+2)+' • 2nd innings'};
+ }
+ return null;
+}
+function goNextGroupStep(){
+ const s=nextGroupScoringStep();
+ if(!s){alert('All group-stage scoring is complete.');return;}
+ selected=s.m.id;
+ save();show('score');
+}
+function inningsPlanHTML(){
+ const ms=groupMatchesInOrder();
+ if(!ms.length)return '<p>Generate the group fixtures to see the playing order.</p>';
+ let x='<div class="tablewrap"><table><thead><tr><th>Order</th><th>Action</th><th>Fixture</th></tr></thead><tbody>';
+ let n=1;
+ for(let i=0;i<ms.length;i+=2){
+  const a=ms[i],b=ms[i+1];
+  if(a)x+='<tr><td>'+n+++'</td><td>1st innings</td><td>'+esc(a.a)+' v '+esc(a.b)+'</td></tr>';
+  if(b)x+='<tr><td>'+n+++'</td><td>1st innings</td><td>'+esc(b.a)+' v '+esc(b.b)+'</td></tr>';
+  if(a)x+='<tr><td>'+n+++'</td><td>2nd innings</td><td>'+esc(a.a)+' v '+esc(a.b)+'</td></tr>';
+  if(b)x+='<tr><td>'+n+++'</td><td>2nd innings</td><td>'+esc(b.a)+' v '+esc(b.b)+'</td></tr>';
+ }
+ return x+'</tbody></table></div>';
+}
+
+function teamsOfMatch(m){return [String(m.a||''),String(m.b||'')];}
+function matchesClash(a,b){
+ if(!a||!b)return false;
+ const A=new Set(teamsOfMatch(a));
+ return teamsOfMatch(b).some(x=>A.has(x));
+}
+function smartOrderFixtures(games){
+ const left=[...games], ordered=[];
+ while(left.length){
+  let bestIndex=0, bestScore=-999;
+  for(let i=0;i<left.length;i++){
+   let score=0, cand=left[i];
+   const prev=ordered[ordered.length-1], prev2=ordered[ordered.length-2];
+   if(prev && !matchesClash(prev,cand))score+=20;
+   if(prev2 && !matchesClash(prev2,cand))score+=8;
+   // Prefer a different group from the immediately previous fixture where possible.
+   if(prev && prev.group!==cand.group)score+=4;
+   // Avoid putting a team into both matches of the same innings pair.
+   if(ordered.length%2===1 && prev && matchesClash(prev,cand))score-=100;
+   if(score>bestScore){bestScore=score;bestIndex=i;}
+  }
+  ordered.push(left.splice(bestIndex,1)[0]);
+ }
+ return ordered;
+}
+function fixtureRestWarnings(){
+ const ms=groupMatchesInOrder(), warnings=[];
+ for(let i=0;i<ms.length-1;i++){
+  if(matchesClash(ms[i],ms[i+1])){
+   const common=teamsOfMatch(ms[i]).filter(x=>teamsOfMatch(ms[i+1]).includes(x));
+   if(common.length)warnings.push(common[0]+' appears in Fixtures '+(i+1)+' and '+(i+2));
+  }
+ }
+ return warnings;
+}
+function fixtureRestStatusHTML(){
+ const w=fixtureRestWarnings();
+ return w.length?'<p><b>Rest check:</b> '+w.length+' unavoidable/remaining back-to-back clash'+(w.length===1?'':'es')+'.</p>':
+ '<p><b>Rest check:</b> ✓ No team is in consecutive fixtures.</p>';
+}
+function flexibleGroupFixtures(){
+ const letters='ABCDEFGH', games=[];let n=1;
+ const c=tournamentConfig();
+ for(let gi=0;gi<c.groupCount;gi++){
+  const L=letters[gi];
+  const ts=S.teams.filter(t=>t.group===L);
+  for(let i=0;i<ts.length;i++)for(let j=i+1;j<ts.length;j++){
+   games.push(newMatch('G'+(n++),'Group',ts[i].id,ts[j].id,L));
+  }
+ }
+ return smartOrderFixtures(games);
+}
 function blankTeams(){let t=[];['A','B'].forEach(g=>{for(let i=1;i<=3;i++)t.push({id:g+i,group:g,name:''})});['C','D'].forEach(g=>{for(let i=1;i<=2;i++)t.push({id:g+i,group:g,name:''})});return t}
 function fresh(){return{meta:{name:"Sutton CC Sponsors' 6-A-Side",date:'',venue:'Sutton Cricket Club'},teams:blankTeams(),matches:[],selected:null,winner:null,runnerUp:null,lastFinished:''}}
 function load(){try{return JSON.parse(localStorage.getItem(STORE))}catch(e){return null}}
-function save(){S.selected=selected;localStorage.setItem(STORE,JSON.stringify(S))}
+let __lastScoreTap=0;
+function scoreTapOK(){
+ const now=Date.now();
+ if(now-__lastScoreTap<280)return false;
+ __lastScoreTap=now;return true;
+}
+function snapshotMatch(m){
+ if(!m)return;
+ m._history=m._history||[];
+ const copy=JSON.parse(JSON.stringify(m));
+ delete copy._history;
+ m._history.push(copy);
+ if(m._history.length>20)m._history.shift();
+}
+function undoMatch(){
+ const m=S.matches.find(x=>x.id===selected);
+ if(!m||!m._history||!m._history.length){alert('Nothing else to undo.');return;}
+ const hist=m._history;
+ const prev=hist.pop();
+ Object.keys(m).forEach(k=>delete m[k]);
+ Object.assign(m,prev);
+ m._history=hist;
+ save();renderScore();
+}
+function save(){S.selected=selected;S.lastSavedAt=new Date().toISOString();try{localStorage.setItem(STORE,JSON.stringify(S));}catch(e){}const f=document.getElementById('saveflag');if(f){f.textContent='Saved locally ✓';clearTimeout(window.sf);window.sf=setTimeout(()=>f.textContent='Offline ready ✓',1200)}}
 function team(id){return S.teams.find(t=>t.id===id)||{id,name:id,group:''}}
 function teamName(id){const n=team(id).name;return n&&n.trim()?n.trim():id}
 function getMatch(id){return S.matches.find(m=>m.id===id)}
@@ -74,7 +367,14 @@ function scoreLine(m){return `${teamName(m.innings[0].bat)} ${m.innings[0].runs}
 
 function newTournament(){confirmBox('New Tournament','Clear teams, fixtures and results?',()=>{S=fresh();selected=null;save();show('teams')})}
 function pasteTeams(){const lines=(document.getElementById('pasteBox').value||'').split(/\n/).map(x=>x.trim()).filter(Boolean);if(lines.length<10){alert('Paste 10 teams, one per line');return}S.teams.forEach((t,i)=>t.name=lines[i]||'');save();render();toast('Teams added')}
-function generateFixtures(){if(S.teams.some(t=>!t.name.trim())&&!confirm('Some teams blank. Continue?'))return;let ms=[],n=1;const ids=g=>S.teams.filter(t=>t.group===g).map(t=>t.id);
+function generateFixtures(){const cfg=tournamentConfig();
+ if(cfg.preset!=='sutton10'){
+  if(!confirm('Generate round-robin fixtures for all groups? Existing fixtures/results will be replaced.'))return;
+  assignGroupsBalanced();
+  S.matches=flexibleGroupFixtures();
+  selected=null;save();render();alert(S.matches.length+' group fixtures generated.');return;
+ }
+ if(S.teams.some(t=>!t.name.trim())&&!confirm('Some teams blank. Continue?'))return;let ms=[],n=1;const ids=g=>S.teams.filter(t=>t.group===g).map(t=>t.id);
  // A/B round robin, C/D play twice
  ms.push(newMatch('G'+n++,'Group',ids('A')[0],ids('A')[1],'A'));
  ms.push(newMatch('G'+n++,'Group',ids('B')[0],ids('B')[1],'B'));
@@ -124,14 +424,14 @@ function currentInn(m){let idx=m.innings[0].complete?1:0;if(m.innings[1].complet
 function nextMatch(){return S.matches.find(m=>m.status!=='Completed')||null}
 function activeMatch(){let sm=getMatch(selected);if(sm&&sm.status!=='Completed')return sm;return nextMatch()}
 function selectMatch(id){selected=id;save();show('score')}
-function snapshot(m){m.snap=JSON.stringify({innings:m.innings,status:m.status,winner:m.winner,result:m.result,locked:m.locked});m.status='In Progress'}
-function undo(){const m=activeMatch();if(!m||!m.snap)return;Object.assign(m,JSON.parse(m.snap));m.snap=null;save();render();toast('Undo')}
-function scoreBall(kind,runs=0,opts={}){const m=activeMatch();if(!m||m.locked)return;const {inn,idx}=currentInn(m);if(inn.complete)return;snapshot(m);const before=inn.runs;
+function snapshot(m){snapshotMatch(m);m.snap=JSON.stringify({innings:m.innings,status:m.status,winner:m.winner,result:m.result,locked:m.locked});m.status='In Progress'}
+function undo(){undoMatch();}
+function scoreBall(kind,runs=0,opts={}){const now=Date.now();if(now-lastScoreTap<350)return;lastScoreTap=now;const m=activeMatch();if(!m||m.locked)return;const {inn,idx}=currentInn(m);if(inn.complete)return;snapshot(m);const before=inn.runs;
  if(kind==='run'){inn.runs+=runs;inn.balls++;inn.log.push(String(runs))}
  if(kind==='sixout'){inn.runs+=6;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('6 OUT')}
  if(kind==='wicket'){inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('W')}
  if(kind==='extra'){inn.runs+=2+runs;let finalOver=inn.balls>=maxBalls(m)-6;if(!finalOver)inn.balls++;inn.log.push(`${opts.label}+${runs}=${2+runs}${finalOver?' extra ball':''}`)}
- if(kind==='lost6'){inn.runs-=10;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('Lost 6: -16 + W')}
+ if(kind==='lost6'){inn.runs=Math.max(0,inn.runs-16);inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('Lost 6: -16 + W')}
  if(inn.balls>maxBalls(m))inn.balls=maxBalls(m);toast(inn.runs-before>=0?`+${inn.runs-before}`:`${inn.runs-before}`);checkEnd(m,idx)}
 function checkEnd(m,idx){const inn=m.innings[idx];if(idx===0){if(inn.wickets>=6||inn.balls>=maxBalls(m)){inn.complete=true;m.innings[1].bat=m.innings[0].bat===m.a?m.b:m.a;toast('1st innings finished')}save();render();return}const target=m.innings[0].runs+1;if(inn.runs>=target){inn.complete=true;finish(m,true);return}if(inn.wickets>=6||inn.balls>=maxBalls(m)){inn.complete=true;finish(m,true);return}save();render()}
 function finish(m,auto=false){if(!m||m.locked)return;if(!auto&&!confirm('Finish and lock this match?'))return;const a=m.innings[0],b=m.innings[1];a.complete=true;b.complete=true;m.status='Completed';m.locked=true;if(a.runs>b.runs){m.winner=a.bat;m.result=`${teamName(a.bat)} beat ${teamName(b.bat)} by ${a.runs-b.runs} runs`}else if(b.runs>a.runs){m.winner=b.bat;m.result=`${teamName(b.bat)} beat ${teamName(a.bat)} by ${6-b.wickets} wickets`}else{m.winner=null;m.result=`${teamName(a.bat)} tied with ${teamName(b.bat)}${m.stage==='Group'?'':' - Bowl Off required'}`}progressKO();S.lastFinished=m.result;const nxt=nextMatch();selected=nxt?nxt.id:null;save();render();showFinished(m.result)}
@@ -141,54 +441,108 @@ function extra(label){choiceBox(`${label}: runs completed`,[0,1,2,3,4,6],r=>scor
 function quickExtra(label,r){scoreBall('extra',r,{label})}
 function lost6(){confirmBox('Lost Ball Six','Apply -16 runs and wicket?',()=>scoreBall('lost6'))}
 
-function tableRows(){let r={};S.teams.forEach(t=>r[t.id]={id:t.id,group:t.group,P:0,W:0,L:0,T:0,Pts:0,RF:0,BF:0,RA:0,BA:0,NRR:0});S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').forEach(m=>{const a=m.innings[0],b=m.innings[1];[[a,b],[b,a]].forEach(([x,y])=>{let q=r[x.bat];q.P++;q.RF+=x.runs;q.BF+=Math.max(1,x.balls);q.RA+=y.runs;q.BA+=Math.max(1,y.balls)});if(m.winner){r[m.winner].W++;r[m.winner].Pts+=2;r[m.winner===a.bat?b.bat:a.bat].L++}else{[a.bat,b.bat].forEach(id=>{r[id].T++;r[id].Pts++})}});Object.values(r).forEach(x=>x.NRR=(x.RF/(x.BF/6||1))-(x.RA/(x.BA/6||1)));return r}
-function rankGroup(g){const r=tableRows();return S.teams.filter(t=>t.group===g).map(t=>r[t.id]).sort((a,b)=>b.Pts-a.Pts||b.NRR-a.NRR||b.RF-a.RF)}
-function rankedList(ids){const r=tableRows();return ids.map(id=>r[id]).filter(Boolean).sort((a,b)=>b.Pts-a.Pts||b.NRR-a.NRR||b.RF-a.RF)}
+function tableRows(){let r={};S.teams.forEach(t=>r[t.id]={id:t.id,group:t.group,P:0,W:0,L:0,T:0,Pts:0,RF:0,BF:0,RA:0,BA:0,NRR:0});S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').forEach(m=>{const a=m.innings[0],b=m.innings[1];[[a,b],[b,a]].forEach(([x,y])=>{let q=r[x.bat];const xBalls=x.wickets>=6?maxBalls(m):Math.max(1,x.balls),yBalls=y.wickets>=6?maxBalls(m):Math.max(1,y.balls);q.P++;q.RF+=x.runs;q.BF+=xBalls;q.RA+=y.runs;q.BA+=yBalls});if(m.winner){r[m.winner].W++;r[m.winner].Pts+=2;r[m.winner===a.bat?b.bat:a.bat].L++}else{[a.bat,b.bat].forEach(id=>{r[id].T++;r[id].Pts++})}});Object.values(r).forEach(x=>x.NRR=(x.RF/(x.BF/6||1))-(x.RA/(x.BA/6||1)));return r}
+function rankGroup(g){const r=tableRows();return S.teams.filter(t=>t.group===g).map(t=>r[t.id]).sort((a,b)=>b.Pts-a.Pts||b.NRR-a.NRR||b.RF-a.RF||teamName(a.id).localeCompare(teamName(b.id)))}
+function rankedList(ids){const r=tableRows();return ids.map(id=>r[id]).filter(Boolean).sort((a,b)=>b.Pts-a.Pts||b.NRR-a.NRR||b.RF-a.RF||teamName(a.id).localeCompare(teamName(b.id)))}
 function qualifiers(){const A=rankGroup('A'),B=rankGroup('B'),C=rankGroup('C'),D=rankGroup('D');const fixed=[A[0]?.id,A[1]?.id,B[0]?.id,B[1]?.id,C[0]?.id,D[0]?.id].filter(Boolean);const wild=rankedList([A[2]?.id,B[2]?.id,C[1]?.id,D[1]?.id].filter(Boolean)).slice(0,2).map(x=>x.id);return rankedList([...fixed,...wild])}
-function groupComplete(){return S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').length===10}
+function groupComplete(){const g=S.matches.filter(m=>m.stage==='Group');return g.length>0&&g.every(m=>m.status==='Completed')}
+function resolveBowlOff(id,winnerId){const m=getMatch(id);if(!m||m.stage==='Group'||m.status!=='Completed'||m.winner)return;if(winnerId!==m.a&&winnerId!==m.b)return;m.winner=winnerId;m.result=teamName(winnerId)+' won Bowl Off';progressKO();save();render();toast('Bowl Off winner saved')}
+function bowlOffHTML(m){if(!m||m.stage==='Group'||m.status!=='Completed'||m.winner)return '';return '<div class="bowl-off"><b>Bowl Off required</b><br><button class="btn secondary" onclick="resolveBowlOff(\''+m.id+'\',\''+m.a+'\')">'+teamName(m.a)+' won</button> <button class="btn secondary" onclick="resolveBowlOff(\''+m.id+'\',\''+m.b+'\')">'+teamName(m.b)+' won</button></div>'}
 function progressKO(){
- if(!getMatch('QF1')&&S.matches.filter(m=>m.stage==='Group').length===10&&groupComplete()){
-  const A=rankGroup('A'), B=rankGroup('B'), C=rankGroup('C'), D=rankGroup('D');
-  const wild=rankedList([A[2]?.id,B[2]?.id,C[1]?.id,D[1]?.id].filter(Boolean)).slice(0,2);
-  if(A.length>=2 && B.length>=2 && C.length>=1 && D.length>=1 && wild.length>=2){
-   S.matches.push(
-    newMatch('QF1','Quarter Final',C[0].id,A[1].id),
-    newMatch('QF2','Quarter Final',D[0].id,B[1].id),
-    newMatch('QF3','Quarter Final',wild[0].id,A[0].id),
-    newMatch('QF4','Quarter Final',wild[1].id,B[0].id)
-   );
+ const cfg=tournamentConfig();
+ if(!getMatch('QF1')&&!getMatch('SF1')&&!getMatch('FINAL')&&groupComplete()){
+  if(cfg.preset==='sutton10'){
+   const A=rankGroup('A'),B=rankGroup('B'),C=rankGroup('C'),D=rankGroup('D');
+   const wild=rankedList([A[2]?.id,B[2]?.id,C[1]?.id,D[1]?.id].filter(Boolean)).slice(0,2);
+   if(A.length>=2&&B.length>=2&&C.length>=1&&D.length>=1&&wild.length>=2){
+    S.matches.push(newMatch('QF1','Quarter Final',C[0].id,A[1].id),newMatch('QF2','Quarter Final',D[0].id,B[1].id),newMatch('QF3','Quarter Final',wild[0].id,A[0].id),newMatch('QF4','Quarter Final',wild[1].id,B[0].id));
+   }
+  }else{
+   const letters='ABCDEFGH'.slice(0,cfg.groupCount).split(''),fixed=[],remaining=[];
+   letters.forEach(g=>rankGroup(g).forEach((x,i)=>(i<cfg.qualifyPerGroup?fixed:remaining).push(x.id)));
+   const seeds=rankedList([...fixed,...rankedList(remaining).slice(0,cfg.bestRemaining).map(x=>x.id)]).map(x=>x.id).slice(0,cfg.knockoutSize);
+   if(seeds.length===cfg.knockoutSize){
+    if(cfg.knockoutSize===8)S.matches.push(newMatch('QF1','Quarter Final',seeds[0],seeds[7]),newMatch('QF2','Quarter Final',seeds[3],seeds[4]),newMatch('QF3','Quarter Final',seeds[1],seeds[6]),newMatch('QF4','Quarter Final',seeds[2],seeds[5]));
+    if(cfg.knockoutSize===4)S.matches.push(newMatch('SF1','Semi Final',seeds[0],seeds[3]),newMatch('SF2','Semi Final',seeds[1],seeds[2]));
+    if(cfg.knockoutSize===2)S.matches.push(newMatch('FINAL','Final',seeds[0],seeds[1]));
+   }
   }
  }
  if(!getMatch('SF1')&&['QF1','QF2','QF3','QF4'].every(id=>getMatch(id)?.status==='Completed'&&getMatch(id)?.winner)){
-  S.matches.push(
-   newMatch('SF1','Semi Final',getMatch('QF1').winner,getMatch('QF3').winner),
-   newMatch('SF2','Semi Final',getMatch('QF2').winner,getMatch('QF4').winner)
-  );
+  S.matches.push(newMatch('SF1','Semi Final',getMatch('QF1').winner,getMatch('QF3').winner),newMatch('SF2','Semi Final',getMatch('QF2').winner,getMatch('QF4').winner));
  }
  if(!getMatch('FINAL')&&['SF1','SF2'].every(id=>getMatch(id)?.status==='Completed'&&getMatch(id)?.winner)){
   S.matches.push(newMatch('FINAL','Final',getMatch('SF1').winner,getMatch('SF2').winner));
  }
  const f=getMatch('FINAL');if(f?.status==='Completed'&&f.winner){S.winner=f.winner;S.runnerUp=f.winner===f.a?f.b:f.a}
 }
-function tableHTML(g){const rows=rankGroup(g),qids=groupComplete()?qualifiers().map(x=>x.id):[];return `<table><tr><th>Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th><th>Q</th></tr>${rows.map((r,i)=>{const auto=(g==='A'||g==='B')?i<2:i<1;const wild=groupComplete()&&qids.includes(r.id)&&!auto;return `<tr><td>${teamName(r.id)}</td><td>${r.P}</td><td>${r.W}</td><td>${r.L}</td><td>${r.T}</td><td><b>${r.Pts}</b></td><td>${r.NRR.toFixed(2)}</td><td>${auto?'✅':wild?'⭐':''}</td></tr>`}).join('')}</table>`}
-function fixture(m){let txt=m.status==='Completed'?'✅ Complete':m.innings[0].complete?'🟡 2nd innings':m.status==='In Progress'?'🔴 Live':'⚪ Not started';return `<div class="fixture ${selected===m.id?'current':''}"><div class="id">${m.id}<br><span class="muted">${m.stage}</span></div><div><b>${matchName(m)}</b><br><span class="muted">${txt}</span><br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}<br>${m.status!=='Completed'?`<button class="btn secondary" onclick="selectMatch('${m.id}')">Score</button>`:''}</div></div>`}
-function stats(){const done=S.matches.filter(m=>m.status==='Completed');let tr=0,tw=0,high=null,low=null;done.forEach(m=>m.innings.forEach(i=>{tr+=i.runs;tw+=i.wickets;let item={team:teamName(i.bat),runs:i.runs,wickets:i.wickets,match:m.id};if(!high||i.runs>high.runs)high=item;if(!low||i.runs<low.runs)low=item}));return{tr,tw,high,low}}
+function customQualifierIds(){
+ const cfg=tournamentConfig(),letters='ABCDEFGH'.slice(0,cfg.groupCount).split(''),fixed=[],remaining=[];
+ letters.forEach(g=>rankGroup(g).forEach((x,i)=>(i<cfg.qualifyPerGroup?fixed:remaining).push(x.id)));
+ return [...fixed,...rankedList(remaining).slice(0,cfg.bestRemaining).map(x=>x.id)];
+}
+function tableHTML(g){
+ const rows=rankGroup(g),cfg=tournamentConfig(),qids=groupComplete()?(cfg.preset==='sutton10'?qualifiers().map(x=>x.id):customQualifierIds()):[];
+ return `<table><tr><th>Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Pts</th><th>NRR</th><th>Q</th></tr>${rows.map((r,i)=>{
+  const auto=cfg.preset==='sutton10'?((g==='A'||g==='B')?i<2:i<1):i<cfg.qualifyPerGroup;
+  const wild=groupComplete()&&qids.includes(r.id)&&!auto;
+  return `<tr><td>${teamName(r.id)}</td><td>${r.P}</td><td>${r.W}</td><td>${r.L}</td><td>${r.T}</td><td><b>${r.Pts}</b></td><td>${r.NRR.toFixed(2)}</td><td>${auto?'✅':wild?'⭐':''}</td></tr>`}).join('')}</table>`;
+}
+function renderFixtures(){fixtures.innerHTML=`<div class="card"><h2>Fixtures</h2><div class="card">
+<h2>Playing Order – One Pitch</h2>
+<p>To keep the tournament moving, matches are paired: <b>Fixture 1 bats first, then Fixture 2 bats first, then Fixture 1 returns for its chase, then Fixture 2 returns for its chase.</b></p>
+${fixtureRestStatusHTML()}${inningsPlanHTML()}
+<button class="btn yellow" onclick="goNextGroupStep()">Go to Next Innings</button>
+<button class="btn" onclick="smartReorderExisting()">Optimise Fixture Order</button>
+</div><p>10 group games. C and D play twice.</p>${S.matches.length?S.matches.map(fixture).join(''):'<p>No fixtures yet.</p>'}</div>`}
+function renderScore(){
+const m=activeMatch();if(!m){score.innerHTML='<div class="card"><h2>Score</h2><p>No unfinished matches.</p></div>';return}selected=m.id;const {inn}=currentInn(m),target=m.innings[0].complete?m.innings[0].runs+1:null,left=maxBalls(m)-inn.balls,finalOver=inn.balls>=maxBalls(m)-6;score.innerHTML=`${S.lastFinished?`<div class="card notice"><h2>✅ Game Finished</h2><p><b>${esc(S.lastFinished)}</b></p></div>`:''}<div class="card noPrint"><label>Match</label><select onchange="selected=this.value;save();render()">${S.matches.filter(x=>x.status!=='Completed').map(x=>`<option value="${x.id}" ${x.id===m.id?'selected':''}>${x.id} - ${matchName(x)}</option>`).join('')}</select><br><br><button class="btn yellow full" onclick="chooseBattingFirst(activeMatch())">Choose Who Bats First</button></div><div class="scoreboard"><div class="team">${teamName(inn.bat)}</div><div class="innings">${m.innings[0].complete?'2nd INNINGS':'1st INNINGS'}</div><div class="score">${inn.runs}/${inn.wickets}</div><div>${overs(inn.balls)} overs • ${left} balls left</div><div class="ballbar"><span style="width:${Math.min(100,inn.balls/maxBalls(m)*100)}%"></span></div>${target?`<div class="target">Target ${target}</div><div>Need ${Math.max(0,target-inn.runs)} from ${left}</div>`:''}<div class="muted">${finalOver?'Final over: wides/no-balls do NOT count as a ball':'Wides/no-balls count as a ball before final over'}</div></div><div class="card"><div class="scoring"><button onclick="scoreBall('run',0)">0</button><button onclick="scoreBall('run',1)">1</button><button onclick="scoreBall('run',2)">2</button><button onclick="scoreBall('run',3)">3</button><button class="four" onclick="scoreBall('run',4)">4</button><button class="six" onclick="scoreBall('sixout')">6 & OUT</button><button onclick="extra('Wide')">Wide</button><button onclick="extra('No Ball')">No Ball</button><button class="wicket" onclick="scoreBall('wicket')">Wicket</button><button class="danger" onclick="lost6()">Lost Ball 6</button><button class="control" onclick="undo()">Undo</button><button class="control" onclick="endInn()">End Innings</button></div><br><h3>Quick Wides</h3><div class="quick"><button onclick="quickExtra('Wide',0)">Wide 2</button><button onclick="quickExtra('Wide',1)">Wide +1</button><button onclick="quickExtra('Wide',2)">Wide +2</button><button onclick="quickExtra('Wide',3)">Wide +3</button><button onclick="quickExtra('Wide',4)">Wide +4</button></div><h3>Quick No Balls</h3><div class="quick"><button onclick="quickExtra('No Ball',0)">NB 2</button><button onclick="quickExtra('No Ball',1)">NB +1</button><button onclick="quickExtra('No Ball',2)">NB +2</button><button onclick="quickExtra('No Ball',3)">NB +3</button><button onclick="quickExtra('No Ball',4)">NB +4</button></div><br><button class="btn full" onclick="finish(activeMatch(),false)">Finish Match</button></div><div class="card"><h3>Match Score</h3><p><b>Batting first:</b> ${teamName(m.innings[0].bat)}</p><p>${scoreLine(m)}</p><p>${status(m)}</p><p>${m.result}</p><h3>Ball Log</h3><div class="log">${inn.log.map(x=>`<span class="pill">${esc(x)}</span>`).join('')||'<span class="muted">No balls yet</span>'}</div></div>`}
+function renderTables(){const c=tournamentConfig(),letters='ABCDEFGH';tables.innerHTML='<div class="card"><h2>Tables</h2></div>'+letters.slice(0,c.groupCount).split('').map(g=>`<div class="card"><h3>Group ${g}</h3>${tableHTML(g)}</div>`).join('')}
+function renderKnockout(){
+ progressKO();
+ const cfg=tournamentConfig();
+ const groups=[['Quarter Finals',['QF1','QF2','QF3','QF4']],['Semi Finals',['SF1','SF2']],['Final',['FINAL']]];
+ const format=cfg.preset==='sutton10'?'<div class="card"><h2>Quarter Final Format</h2><p>QF1: C1 v A2<br>QF2: D1 v B2<br>QF3: Best qualifier v A1<br>QF4: Next best qualifier v B1</p></div>':'';
+ knockout.innerHTML=format+(S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div></div>`:'')+
+ `<div class="grid">${groups.map(([title,ids])=>{const existing=ids.filter(id=>getMatch(id));if(!existing.length)return '';return `<div class="card"><h2>${title}</h2>${existing.map(id=>{let m=getMatch(id);return `<div class="fixture"><div class="id">${id}</div><div>${matchName(m)}<br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}${m.status!=='Completed'?`<br><button class="btn secondary" onclick="selectMatch('${id}')">Score</button>`:''}${bowlOffHTML(m)}</div></div>`}).join('')}</div>`}).join('')}</div>`;
+}
+function clearTestResults(){
+ if(!confirm('Clear all results and regenerate the current group fixtures?'))return;
+ generateFixtures();
+}
 
-function backup(){download(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),'SuttonCC_10team_backup.json')}
-function restoreFile(file){const r=new FileReader();r.onload=()=>{S=JSON.parse(r.result);selected=S.selected;save();render();toast('Restored')};r.readAsText(file)}
-function exportCSV(){let csv='Match,Stage,Team 1,Team 2,Score 1,Score 2,Result\n';S.matches.filter(m=>m.status==='Completed').forEach(m=>csv+=`${m.id},${m.stage},${teamName(m.innings[0].bat)},${teamName(m.innings[1].bat)},${m.innings[0].runs}/${m.innings[0].wickets},${m.innings[1].runs}/${m.innings[1].wickets},"${m.result}"\n`);download(new Blob([csv],{type:'text/csv'}),'SuttonCC_10team_results.csv')}
-function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click()}
+function smartReorderExisting(){
+ const groups=(S.matches||[]).filter(m=>m.stage==='Group');
+ if(groups.some(m=>m.status==='Completed')){alert('Fixture order is locked once group matches have been completed.');return;}
+ const others=(S.matches||[]).filter(m=>m.stage!=='Group');
+ S.matches=[...smartOrderFixtures(groups),...others];
+ save();render();alert('Fixture order optimised to give teams a break where possible.');
+}
+function registerOffline(){if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}window.addEventListener('offline',()=>{const f=document.getElementById('saveflag');if(f)f.textContent='OFFLINE • Saved locally ✓'});window.addEventListener('online',()=>{const f=document.getElementById('saveflag');if(f)f.textContent='Online • Saved locally ✓'});}
 
-function render(){document.getElementById('title').textContent=S.meta.name;progressKO();renderHome();renderTeams();renderFixtures();renderScore();renderTables();renderKnockout();renderResults();renderAwards();renderSettings()}
-function renderHome(){const done=S.matches.filter(m=>m.status==='Completed').length,total=S.matches.length||10,nxt=nextMatch();home.innerHTML=`${S.lastFinished?`<div class="card notice"><h2>✅ Last Game Finished</h2><p><b>${esc(S.lastFinished)}</b></p></div>`:''}${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div><div>Runners Up: ${teamName(S.runnerUp)}</div></div>`:''}<div class="grid"><div class="card"><h2>10 Team Format</h2><p>A & B have 3 teams. C & D have 2 teams and play twice.</p><p>Quarter-finals: C1 v A2, D1 v B2, best qualifier v A1, next best qualifier v B1.</p><button class="btn full" onclick="newTournament()">New Tournament</button><br><br><button class="btn yellow full" onclick="show('teams')">Team Setup</button></div><div class="card"><h2>Progress</h2><p><span class="badge done">${done}/${total} completed</span></p>${nxt?`<p><b>Next:</b> ${nxt.id} ${matchName(nxt)}</p><button class="btn secondary" onclick="selectMatch('${nxt.id}')">Open Next</button>`:'<p>No matches left.</p>'}</div></div>`}
-function renderTeams(){let html=`<div class="card"><h2>Teams</h2><textarea id="pasteBox" placeholder="Paste 10 team names, one per line"></textarea><br><br><button class="btn secondary" onclick="pasteTeams()">Paste Teams</button></div><div class="card">`;['A','B','C','D'].forEach(g=>{html+=`<h3>Group ${g}</h3>`;S.teams.filter(t=>t.group===g).forEach(t=>html+=`<label>${t.id}</label><input value="${esc(t.name)}" onchange="team('${t.id}').name=this.value;save();render()">`)});html+=`<br><br><button class="btn full" onclick="generateFixtures()">Generate Fixtures</button></div>`;teams.innerHTML=html}
-function renderFixtures(){fixtures.innerHTML=`<div class="card"><h2>Fixtures</h2><p>10 group games. C and D play twice.</p>${S.matches.length?S.matches.map(fixture).join(''):'<p>No fixtures yet.</p>'}</div>`}
-function renderScore(){const m=activeMatch();if(!m){score.innerHTML='<div class="card"><h2>Score</h2><p>No unfinished matches.</p></div>';return}selected=m.id;const {inn}=currentInn(m),target=m.innings[0].complete?m.innings[0].runs+1:null,left=maxBalls(m)-inn.balls,finalOver=inn.balls>=maxBalls(m)-6;score.innerHTML=`${S.lastFinished?`<div class="card notice"><h2>✅ Game Finished</h2><p><b>${esc(S.lastFinished)}</b></p></div>`:''}<div class="card noPrint"><label>Match</label><select onchange="selected=this.value;save();render()">${S.matches.filter(x=>x.status!=='Completed').map(x=>`<option value="${x.id}" ${x.id===m.id?'selected':''}>${x.id} - ${matchName(x)}</option>`).join('')}</select><br><br><button class="btn yellow full" onclick="chooseBattingFirst(activeMatch())">Choose Who Bats First</button></div><div class="scoreboard"><div class="team">${teamName(inn.bat)}</div><div class="innings">${m.innings[0].complete?'2nd INNINGS':'1st INNINGS'}</div><div class="score">${inn.runs}/${inn.wickets}</div><div>${overs(inn.balls)} overs • ${left} balls left</div><div class="ballbar"><span style="width:${Math.min(100,inn.balls/maxBalls(m)*100)}%"></span></div>${target?`<div class="target">Target ${target}</div><div>Need ${Math.max(0,target-inn.runs)} from ${left}</div>`:''}<div class="muted">${finalOver?'Final over: wides/no-balls do NOT count as a ball':'Wides/no-balls count as a ball before final over'}</div></div><div class="card"><div class="scoring"><button onclick="scoreBall('run',0)">0</button><button onclick="scoreBall('run',1)">1</button><button onclick="scoreBall('run',2)">2</button><button onclick="scoreBall('run',3)">3</button><button class="four" onclick="scoreBall('run',4)">4</button><button class="six" onclick="scoreBall('sixout')">6 & OUT</button><button onclick="extra('Wide')">Wide</button><button onclick="extra('No Ball')">No Ball</button><button class="wicket" onclick="scoreBall('wicket')">Wicket</button><button class="danger" onclick="lost6()">Lost Ball 6</button><button class="control" onclick="undo()">Undo</button><button class="control" onclick="endInn()">End Innings</button></div><br><h3>Quick Wides</h3><div class="quick"><button onclick="quickExtra('Wide',0)">Wide 2</button><button onclick="quickExtra('Wide',1)">Wide +1</button><button onclick="quickExtra('Wide',2)">Wide +2</button><button onclick="quickExtra('Wide',3)">Wide +3</button><button onclick="quickExtra('Wide',4)">Wide +4</button></div><h3>Quick No Balls</h3><div class="quick"><button onclick="quickExtra('No Ball',0)">NB 2</button><button onclick="quickExtra('No Ball',1)">NB +1</button><button onclick="quickExtra('No Ball',2)">NB +2</button><button onclick="quickExtra('No Ball',3)">NB +3</button><button onclick="quickExtra('No Ball',4)">NB +4</button></div><br><button class="btn full" onclick="finish(activeMatch(),false)">Finish Match</button></div><div class="card"><h3>Match Score</h3><p><b>Batting first:</b> ${teamName(m.innings[0].bat)}</p><p>${scoreLine(m)}</p><p>${status(m)}</p><p>${m.result}</p><h3>Ball Log</h3><div class="log">${inn.log.map(x=>`<span class="pill">${esc(x)}</span>`).join('')||'<span class="muted">No balls yet</span>'}</div></div>`}
-function renderTables(){tables.innerHTML='<div class="card"><h2>Tables</h2><p>✅ automatic qualifier. ⭐ wildcard qualifier after all group games.</p></div>'+['A','B','C','D'].map(g=>`<div class="card"><h3>Group ${g}</h3>${tableHTML(g)}</div>`).join('')}
-function renderKnockout(){const groups=[['Quarter Finals',['QF1','QF2','QF3','QF4']],['Semi Finals',['SF1','SF2']],['Final',['FINAL']]];let qhtml='';if(groupComplete()){qhtml=`<div class="card"><h2>Qualified Seeds</h2><ol>${qualifiers().map(q=>`<li>${teamName(q.id)} - ${q.Pts} pts, NRR ${q.NRR.toFixed(2)}</li>`).join('')}</ol></div>`}knockout.innerHTML=`<div class="card"><h2>Quarter Final Format</h2><p>QF1: C1 v A2<br>QF2: D1 v B2<br>QF3: Best qualifier v A1<br>QF4: Next best qualifier v B1</p></div>${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div></div>`:''}${qhtml}<div class="grid">${groups.map(([title,ids])=>`<div class="card"><h2>${title}</h2>${ids.map(id=>{let m=getMatch(id);return m?`<div class="fixture"><div class="id">${id}</div><div>${matchName(m)}<br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}${m.status!=='Completed'?`<br><button class="btn secondary" onclick="selectMatch('${id}')">Score</button>`:''}</div></div>`:`<div class="fixture"><div class="id">${id}</div><div>TBC</div></div>`}).join('')}</div>`).join('')}</div>`}
-function renderResults(){const done=S.matches.filter(m=>m.status==='Completed');results.innerHTML=`<div class="card"><h2>Results</h2><button class="btn secondary" onclick="exportCSV()">Export CSV</button></div><div class="card"><table><tr><th>Match</th><th>Score</th><th>Result</th></tr>${done.map(m=>`<tr><td>${m.id}<br>${matchName(m)}</td><td>${scoreLine(m)}</td><td>${m.result}</td></tr>`).join('')}</table></div>`}
-function renderAwards(){const st=stats();awards.innerHTML=`<div class="card"><h2>Awards</h2></div><div class="grid"><div class="card"><h2>Total Runs</h2><p class="presentationBig">${st.tr}</p></div><div class="card"><h2>Total Wickets</h2><p class="presentationBig">${st.tw}</p></div><div class="card"><h2>Highest Score</h2><p><b>${st.high?st.high.team+' '+st.high.runs+'/'+st.high.wickets:'-'}</b></p></div><div class="card"><h2>Lowest Score</h2><p><b>${st.low?st.low.team+' '+st.low.runs+'/'+st.low.wickets:'-'}</b></p></div></div>`}
-function renderSettings(){settings.innerHTML=`<div class="card"><h2>Settings</h2><label>Tournament name</label><input value="${esc(S.meta.name)}" onchange="S.meta.name=this.value;save();render()"><label>Date</label><input value="${esc(S.meta.date)}" onchange="S.meta.date=this.value;save();render()"><label>Venue</label><input value="${esc(S.meta.venue)}" onchange="S.meta.venue=this.value;save();render()"></div><div class="card"><h2>Backup</h2><button class="btn" onclick="backup()">Export Backup</button><br><br><input type="file" onchange="restoreFile(this.files[0])"></div><div class="card"><button class="btn danger full" onclick="newTournament()">New Tournament / Clear All</button></div>`}
-function init(){nav.innerHTML=PAGES.map(p=>`<button id="nav_${p[0]}" onclick="show('${p[0]}')">${p[1]}</button>`).join('');document.getElementById('nav_home').classList.add('active');render()}init();
+
+
+
+
+function resultText(m){
+ if(!m || !m.i1 || !m.i2) return '';
+ const a=m.i1, b=m.i2;
+ const first=a.team||m.a, second=b.team||m.b;
+ const r1=Number(a.runs||0), r2=Number(b.runs||0);
+ if(r2>r1){
+  const balls=Math.max(0,maxBalls(m)-Number(b.balls||0));
+  return second+' won with '+balls+' ball'+(balls===1?'':'s')+' remaining';
+ }
+ if(r1>r2) return first+' won by '+(r1-r2)+' run'+((r1-r2)===1?'':'s');
+ return 'Match tied';
+}
+function nextActiveMatch(){
+ const step=nextGroupScoringStep();
+ if(step){selected=step.m.id;step.m.innings=step.innings;save();show('score');renderScore();return;}
+ const n=S.matches.find(x=>x.status!=='Completed');
+ if(n){selected=n.id;save();show('score');renderScore();}
+ else alert('All scheduled matches are complete.');
+}
+function init(){tournamentConfig();registerOffline();nav.innerHTML=PAGES.map(p=>`<button id="nav_${p[0]}" onclick="show('${p[0]}')">${p[1]}</button>`).join('');document.getElementById('nav_home').classList.add('active');render()}init();
 </script>
 </body></html>
