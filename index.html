@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.1 • Unlock from Results • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.2 • Result Change Check • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -462,7 +462,36 @@ function advanceAfterFirstInnings(m){
  selected=next.id;S.selected=selected;save();renderScore();return true;
 }
 function checkEnd(m,idx){const inn=m.innings[idx];if(idx===0){if(inn.wickets>=6||inn.balls>=maxBalls(m)){inn.complete=true;m.innings[1].bat=m.innings[0].bat===m.a?m.b:m.a;toast('1st innings finished');if(advanceAfterFirstInnings(m))return}save();render();return}const target=m.innings[0].runs+1;if(inn.runs>=target){inn.complete=true;finish(m,true);return}if(inn.wickets>=6||inn.balls>=maxBalls(m)){inn.complete=true;finish(m,true);return}save();render()}
-function finish(m,auto=false){if(!m||m.locked)return;if(auto){confirmBox('Confirm Match Result','The match has reached a result. Confirm and lock this match?',()=>finish(m,false));return}if(!confirm('Finish and lock this match?'))return;const a=m.innings[0],b=m.innings[1];a.complete=true;b.complete=true;m.status='Completed';m.locked=true;if(a.runs>b.runs){m.winner=a.bat;m.result=`${teamName(a.bat)} beat ${teamName(b.bat)} by ${a.runs-b.runs} runs`}else if(b.runs>a.runs){m.winner=b.bat;m.result=`${teamName(b.bat)} beat ${teamName(a.bat)} by ${6-b.wickets} wickets`}else{m.winner=null;m.result=`${teamName(a.bat)} tied with ${teamName(b.bat)}${m.stage==='Group'?'':' - Bowl Off required'}`}progressKO();S.lastFinished=m.result;const nxt=nextMatch();selected=nxt?nxt.id:null;save();render();showFinished(m.result)}
+function previewResult(m){
+ const a=m.innings[0],b=m.innings[1];
+ if(a.runs>b.runs)return {winner:a.bat,result:`${teamName(a.bat)} beat ${teamName(b.bat)} by ${a.runs-b.runs} runs`};
+ if(b.runs>a.runs)return {winner:b.bat,result:`${teamName(b.bat)} beat ${teamName(a.bat)} by ${6-b.wickets} wickets`};
+ return {winner:null,result:`${teamName(a.bat)} tied with ${teamName(b.bat)}${m.stage==='Group'?'':' - Bowl Off required'}`};
+}
+function confirmChangedResult(m,yes){
+ const p=previewResult(m),old=m._previousConfirmed;
+ if(!old){confirmBox('Confirm Match Result','The match has reached a result. Confirm and lock this match?',yes);return;}
+ modalBox.innerHTML=`<h2>Confirm Corrected Result</h2>
+ <div class="card" style="margin:10px 0"><b>Previous Result</b><p>${esc(old.score)}</p><p><b>${esc(old.result)}</b></p></div>
+ <div class="card" style="margin:10px 0"><b>New Result</b><p>${scoreLine(m)}</p><p><b>${esc(p.result)}</b></p></div>
+ <p>Confirm this corrected result and lock the match again?</p>
+ <button class="btn full" id="confirmCorrected">Confirm Corrected Result</button><br><br>
+ <button class="btn secondary full" onclick="closeModal()">Go Back &amp; Check</button>`;
+ modal.classList.add('on');
+ document.getElementById('confirmCorrected').onclick=()=>{closeModal();yes()};
+}
+function finish(m,auto=false){
+ if(!m||m.locked)return;
+ if(auto){confirmChangedResult(m,()=>finish(m,'confirmed'));return;}
+ if(auto!=='confirmed'){
+  if(m._previousConfirmed){confirmChangedResult(m,()=>finish(m,'confirmed'));return;}
+  if(!confirm('Finish and lock this match?'))return;
+ }
+ const a=m.innings[0],b=m.innings[1],p=previewResult(m);
+ a.complete=true;b.complete=true;m.status='Completed';m.locked=true;m.winner=p.winner;m.result=p.result;
+ delete m._previousConfirmed;
+ progressKO();S.lastFinished=m.result;const nxt=nextMatch();selected=nxt?nxt.id:null;save();render();showFinished(m.result)
+}
 function showFinished(result){modalBox.innerHTML=`<h2>✅ Game Finished</h2><p style="font-size:22px;font-weight:900">${esc(result)}</p><button class="btn full" onclick="closeModal();show('score')">Next Game</button><br><br><button class="btn secondary full" onclick="closeModal()">Close</button>`;modal.classList.add('on')}
 function endInn(){const m=activeMatch();if(!m)return;confirmBox('End innings','End this innings?',()=>{const ci=currentInn(m);snapshot(m);ci.inn.complete=true;if(ci.idx===0){m.innings[1].bat=m.innings[0].bat===m.a?m.b:m.a;if(advanceAfterFirstInnings(m))return}else{finish(m,true);return}save();render()})}
 function extra(label){choiceBox(`${label}: runs completed`,[0,1,2,3,4,6],r=>scoreBall('extra',r,{label}))}
@@ -602,6 +631,7 @@ function unlockMatch(id){
    S.winner=null;S.runnerUp=null;
   }
   const freshMatch=getMatch(id);if(!freshMatch)return;
+  freshMatch._previousConfirmed={score:scoreLine(freshMatch).replace(/<br>/g,' / '),result:oldResult};
   freshMatch.locked=false;
   freshMatch.status='In Progress';
   freshMatch.winner=null;
