@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.4 • Touch Confirm Fix • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.5 • Confirm Loop Fix • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -496,7 +496,7 @@ function confirmChangedResult(m,yes){
 }
 function finish(m,auto=false){
  if(!m||m.locked)return;
- if(auto){confirmChangedResult(m,()=>finish(m,'confirmed'));return;}
+ if(auto===true){confirmChangedResult(m,()=>finish(m,'confirmed'));return;}
  if(auto!=='confirmed'){
   if(m._previousConfirmed){confirmChangedResult(m,()=>finish(m,'confirmed'));return;}
   if(!confirm('Finish and lock this match?'))return;
