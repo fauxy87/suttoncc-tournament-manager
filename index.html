@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.2 • Result Change Check • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.3 • Paired Quarter Finals • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -237,24 +237,28 @@ function knockoutLabel(){
  return k===2?'Final':k===4?'Semi-finals':k===8?'Quarter-finals':'Knockout';
 }
 
-function groupMatchesInOrder(){
- return (S.matches||[]).filter(m=>m.stage==='Group');
+function stageMatchesInOrder(stage){
+ return (S.matches||[]).filter(m=>m.stage===stage);
 }
+function groupMatchesInOrder(){return stageMatchesInOrder('Group')}
+function quarterFinalsInOrder(){return stageMatchesInOrder('Quarter Final')}
 function inningsComplete(m,n){
  const inn=m&&m.innings?m.innings[n-1]:null;
  return !!(inn && inn.complete);
 }
-function nextGroupScoringStep(){
- const ms=groupMatchesInOrder();
+function nextPairedScoringStep(stage,labelPrefix){
+ const ms=stageMatchesInOrder(stage);
  for(let i=0;i<ms.length;i+=2){
   const m1=ms[i],m2=ms[i+1];
-  if(m1 && !inningsComplete(m1,1))return {m:m1,label:'Fixture '+(i+1)+' • 1st innings'};
-  if(m2 && !inningsComplete(m2,1))return {m:m2,label:'Fixture '+(i+2)+' • 1st innings'};
-  if(m1 && m1.status!=='Completed')return {m:m1,label:'Fixture '+(i+1)+' • 2nd innings'};
-  if(m2 && m2.status!=='Completed')return {m:m2,label:'Fixture '+(i+2)+' • 2nd innings'};
+  if(m1 && !inningsComplete(m1,1))return {m:m1,label:labelPrefix+' '+(i+1)+' • 1st innings'};
+  if(m2 && !inningsComplete(m2,1))return {m:m2,label:labelPrefix+' '+(i+2)+' • 1st innings'};
+  if(m1 && m1.status!=='Completed')return {m:m1,label:labelPrefix+' '+(i+1)+' • 2nd innings'};
+  if(m2 && m2.status!=='Completed')return {m:m2,label:labelPrefix+' '+(i+2)+' • 2nd innings'};
  }
  return null;
 }
+function nextGroupScoringStep(){return nextPairedScoringStep('Group','Fixture')}
+function nextQuarterFinalScoringStep(){return nextPairedScoringStep('Quarter Final','QF')}
 function goNextGroupStep(){
  const s=nextGroupScoringStep();
  if(!s){alert('All group-stage scoring is complete.');return;}
@@ -442,8 +446,8 @@ function scoreBall(kind,runs=0,opts={}){const now=Date.now();if(now-lastScoreTap
  if(kind==='lost6'){inn.runs-=10;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('Lost Ball 6: -10 + W')}
  if(inn.balls>maxBalls(m))inn.balls=maxBalls(m);toast(inn.runs-before>=0?`+${inn.runs-before}`:`${inn.runs-before}`);checkEnd(m,idx)}
 function advanceAfterFirstInnings(m){
- if(!m||m.stage!=='Group')return false;
- const ms=groupMatchesInOrder(),pos=ms.findIndex(x=>x.id===m.id);
+ if(!m||!['Group','Quarter Final'].includes(m.stage))return false;
+ const ms=stageMatchesInOrder(m.stage),pos=ms.findIndex(x=>x.id===m.id);
  if(pos<0)return false;
  const pairStart=Math.floor(pos/2)*2;
  let next=null;
@@ -455,7 +459,7 @@ function advanceAfterFirstInnings(m){
    if(first&&first.status!=='Completed')next=first;
  }
  if(!next){
-   const step=nextGroupScoringStep();
+   const step=m.stage==='Group'?nextGroupScoringStep():nextQuarterFinalScoringStep();
    next=step&&step.m;
  }
  if(!next||next.id===m.id)return false;
@@ -594,8 +598,10 @@ function resultText(m){
  return 'Match tied';
 }
 function nextActiveMatch(){
- const step=nextGroupScoringStep();
- if(step){selected=step.m.id;step.m.innings=step.innings;save();show('score');renderScore();return;}
+ const groupStep=nextGroupScoringStep();
+ if(groupStep){selected=groupStep.m.id;save();show('score');renderScore();return;}
+ const qfStep=nextQuarterFinalScoringStep();
+ if(qfStep){selected=qfStep.m.id;save();show('score');renderScore();return;}
  const n=S.matches.find(x=>x.status!=='Completed');
  if(n){selected=n.id;save();show('score');renderScore();}
  else alert('All scheduled matches are complete.');
