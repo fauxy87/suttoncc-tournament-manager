@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.8 • Team Stats • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.0 • Full Tournament Stats • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -662,34 +662,113 @@ function renderResults(){const done=S.matches.filter(m=>m.status==='Completed');
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 function exportCSV(){const rows=[['Match','Team 1','Team 2','Score','Result']];S.matches.filter(m=>m.status==='Completed').forEach(m=>rows.push([m.id,teamName(m.a),teamName(m.b),scoreLine(m).replace(/<br>/g,' / '),m.result]));const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');download(new Blob([csv],{type:'text/csv'}),'SuttonCC_results.csv')}
 function stats(){
+ const completed=S.matches.filter(m=>m.status==='Completed');
  let all=[],teamStats={};
- S.teams.forEach(t=>teamStats[t.id]={id:t.id,team:teamName(t.id),matches:0,runs:0,wicketsLost:0,wicketsTaken:0,high:0});
- S.matches.filter(m=>m.status==='Completed').forEach(m=>{
+ S.teams.forEach(t=>teamStats[t.id]={id:t.id,team:teamName(t.id),matches:0,wins:0,losses:0,ties:0,runs:0,wicketsLost:0,wicketsTaken:0,high:0,groupRuns:0,groupMatches:0,koRuns:0,koMatches:0});
+ const margins=[];
+ completed.forEach(m=>{
   const a=m.innings?.[0],b=m.innings?.[1];if(!a||!b)return;
-  all.push({team:teamName(a.bat),runs:Number(a.runs||0),wickets:Number(a.wickets||0)});
-  all.push({team:teamName(b.bat),runs:Number(b.runs||0),wickets:Number(b.wickets||0)});
-  const A=teamStats[a.bat],B=teamStats[b.bat];
-  if(A){A.matches++;A.runs+=Number(a.runs||0);A.wicketsLost+=Number(a.wickets||0);A.wicketsTaken+=Number(b.wickets||0);A.high=Math.max(A.high,Number(a.runs||0));}
-  if(B){B.matches++;B.runs+=Number(b.runs||0);B.wicketsLost+=Number(b.wickets||0);B.wicketsTaken+=Number(a.wickets||0);B.high=Math.max(B.high,Number(b.runs||0));}
+  all.push({team:teamName(a.bat),runs:Number(a.runs||0),wickets:Number(a.wickets||0),stage:m.stage,match:m.id});
+  all.push({team:teamName(b.bat),runs:Number(b.runs||0),wickets:Number(b.wickets||0),stage:m.stage,match:m.id});
+  const A=teamStats[a.bat],B=teamStats[b.bat],isGroup=m.stage==='Group';
+  if(A){
+   A.matches++;A.runs+=Number(a.runs||0);A.wicketsLost+=Number(a.wickets||0);A.wicketsTaken+=Number(b.wickets||0);A.high=Math.max(A.high,Number(a.runs||0));
+   if(isGroup){A.groupRuns+=Number(a.runs||0);A.groupMatches++;}else{A.koRuns+=Number(a.runs||0);A.koMatches++;}
+  }
+  if(B){
+   B.matches++;B.runs+=Number(b.runs||0);B.wicketsLost+=Number(b.wickets||0);B.wicketsTaken+=Number(a.wickets||0);B.high=Math.max(B.high,Number(b.runs||0));
+   if(isGroup){B.groupRuns+=Number(b.runs||0);B.groupMatches++;}else{B.koRuns+=Number(b.runs||0);B.koMatches++;}
+  }
+  if(m.winner){
+   if(teamStats[m.winner])teamStats[m.winner].wins++;
+   const loser=m.winner===a.bat?b.bat:a.bat;if(teamStats[loser])teamStats[loser].losses++;
+  }else{
+   if(A)A.ties++;if(B)B.ties++;
+  }
+  const runDiff=Math.abs(Number(a.runs||0)-Number(b.runs||0));
+  const winnerName=m.winner?teamName(m.winner):'Tie';
+  margins.push({id:m.id,name:matchName(m),stage:m.stage,result:m.result||'',runDiff,winner:winnerName});
  });
+ const teams=Object.values(teamStats).filter(x=>x.matches>0).map(x=>({
+  ...x,
+  avg:x.matches?x.runs/x.matches:0,
+  groupAvg:x.groupMatches?x.groupRuns/x.groupMatches:0,
+  koAvg:x.koMatches?x.koRuns/x.koMatches:0
+ })).sort((a,b)=>b.runs-a.runs||b.high-a.high||a.team.localeCompare(b.team));
  const tr=all.reduce((n,x)=>n+x.runs,0),tw=all.reduce((n,x)=>n+x.wickets,0);
  const sorted=[...all].sort((a,b)=>b.runs-a.runs);
- const teams=Object.values(teamStats).filter(x=>x.matches>0).sort((a,b)=>b.runs-a.runs||b.high-a.high||a.team.localeCompare(b.team));
- return{tr,tw,high:sorted[0]||null,low:sorted.length?[...all].sort((a,b)=>a.runs-b.runs)[0]:null,teams};
+ const topRuns=teams[0]||null;
+ const topWkts=[...teams].sort((a,b)=>b.wicketsTaken-a.wicketsTaken||b.runs-a.runs)[0]||null;
+ const decided=margins.filter(x=>x.winner!=='Tie');
+ const biggest=decided.length?[...decided].sort((a,b)=>b.runDiff-a.runDiff)[0]:null;
+ const closest=decided.length?[...decided].sort((a,b)=>a.runDiff-b.runDiff)[0]:null;
+ const group=completed.filter(m=>m.stage==='Group'),ko=completed.filter(m=>m.stage!=='Group');
+ const sumRuns=ms=>ms.reduce((n,m)=>n+Number(m.innings?.[0]?.runs||0)+Number(m.innings?.[1]?.runs||0),0);
+ const sumWkts=ms=>ms.reduce((n,m)=>n+Number(m.innings?.[0]?.wickets||0)+Number(m.innings?.[1]?.wickets||0),0);
+ return{
+  tr,tw,high:sorted[0]||null,low:sorted.length?[...all].sort((a,b)=>a.runs-b.runs)[0]:null,
+  teams,topRuns,topWkts,biggest,closest,
+  group:{matches:group.length,runs:sumRuns(group),wickets:sumWkts(group)},
+  knockout:{matches:ko.length,runs:sumRuns(ko),wickets:sumWkts(ko)}
+ };
+}
+function exportStatsCSV(){
+ const st=stats();
+ const rows=[['Team','Matches','Wins','Losses','Ties','Runs','Average','Wickets Lost','Wickets Taken','Highest','Group Runs','Group Avg','Knockout Runs','Knockout Avg']];
+ st.teams.forEach(x=>rows.push([x.team,x.matches,x.wins,x.losses,x.ties,x.runs,x.avg.toFixed(1),x.wicketsLost,x.wicketsTaken,x.high,x.groupRuns,x.groupAvg.toFixed(1),x.koRuns,x.koAvg.toFixed(1)]));
+ const csv=rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+ download(new Blob([csv],{type:'text/csv'}),'SuttonCC_tournament_stats.csv');
+}
+function printStats(){
+ const original=document.body.innerHTML;
+ const statsHtml=document.getElementById('awards').innerHTML;
+ document.body.innerHTML='<main style="max-width:1100px;margin:auto;padding:20px"><h1>'+esc(S.meta.name)+'</h1>'+statsHtml+'</main>';
+ window.print();
+ document.body.innerHTML=original;
+ location.reload();
+}
+function tournamentSummaryHTML(st){
+ const final=getMatch('FINAL');
+ if(!final||final.status!=='Completed')return '';
+ return `<div class="card"><h2>🏆 Tournament Summary</h2>
+ <div class="grid">
+  <div><b>Winners</b><p style="font-size:24px;font-weight:900">${S.winner?esc(teamName(S.winner)):'-'}</p></div>
+  <div><b>Runners Up</b><p style="font-size:24px;font-weight:900">${S.runnerUp?esc(teamName(S.runnerUp)):'-'}</p></div>
+  <div><b>Total Runs</b><p style="font-size:24px;font-weight:900">${st.tr}</p></div>
+  <div><b>Total Wickets</b><p style="font-size:24px;font-weight:900">${st.tw}</p></div>
+ </div>
+ <p><b>Highest innings:</b> ${st.high?esc(st.high.team)+' '+st.high.runs+'/'+st.high.wickets:'-'}</p>
+ <p><b>Biggest win:</b> ${st.biggest?esc(st.biggest.name)+' — '+esc(st.biggest.result):'-'}</p>
+ <p><b>Closest match:</b> ${st.closest?esc(st.closest.name)+' — '+esc(st.closest.result):'-'}</p>
+ <h3>All Results</h3>
+ ${S.matches.filter(m=>m.status==='Completed').map(m=>`<p><b>${m.id}</b> — ${esc(matchName(m))}<br>${scoreLine(m)}<br><b>${esc(m.result)}</b></p>`).join('')}
+ </div>`;
 }
 function renderAwards(){
  const st=stats();
- awards.innerHTML=`<div class="card"><h2>Stats</h2></div>
+ awards.innerHTML=`<div class="card"><h2>Stats</h2>
+ <button class="btn secondary" onclick="exportStatsCSV()">Download Stats CSV</button>
+ <button class="btn secondary" onclick="printStats()">Print Stats</button></div>
  <div class="grid">
   <div class="card"><h2>Total Runs</h2><p class="presentationBig">${st.tr}</p></div>
   <div class="card"><h2>Total Wickets</h2><p class="presentationBig">${st.tw}</p></div>
-  <div class="card"><h2>Highest Score</h2><p><b>${st.high?st.high.team+' '+st.high.runs+'/'+st.high.wickets:'-'}</b></p></div>
-  <div class="card"><h2>Lowest Score</h2><p><b>${st.low?st.low.team+' '+st.low.runs+'/'+st.low.wickets:'-'}</b></p></div>
+  <div class="card"><h2>Highest Score</h2><p><b>${st.high?esc(st.high.team)+' '+st.high.runs+'/'+st.high.wickets:'-'}</b></p></div>
+  <div class="card"><h2>Lowest Score</h2><p><b>${st.low?esc(st.low.team)+' '+st.low.runs+'/'+st.low.wickets:'-'}</b></p></div>
+  <div class="card"><h2>Top Scoring Team</h2><p><b>${st.topRuns?esc(st.topRuns.team)+' — '+st.topRuns.runs+' runs':'-'}</b></p></div>
+  <div class="card"><h2>Most Wickets Taken</h2><p><b>${st.topWkts?esc(st.topWkts.team)+' — '+st.topWkts.wicketsTaken:'-'}</b></p></div>
+  <div class="card"><h2>Biggest Win</h2><p><b>${st.biggest?esc(st.biggest.name):'-'}</b></p><p>${st.biggest?esc(st.biggest.result):''}</p></div>
+  <div class="card"><h2>Closest Match</h2><p><b>${st.closest?esc(st.closest.name):'-'}</b></p><p>${st.closest?esc(st.closest.result):''}</p></div>
  </div>
+ <div class="card"><h2>Group Stage vs Knockout</h2><div class="tablewrap"><table>
+ <tr><th>Stage</th><th>Matches</th><th>Runs</th><th>Wickets</th><th>Runs/Match</th></tr>
+ <tr><td>Group</td><td>${st.group.matches}</td><td>${st.group.runs}</td><td>${st.group.wickets}</td><td>${st.group.matches?(st.group.runs/st.group.matches).toFixed(1):'0.0'}</td></tr>
+ <tr><td>Knockout</td><td>${st.knockout.matches}</td><td>${st.knockout.runs}</td><td>${st.knockout.wickets}</td><td>${st.knockout.matches?(st.knockout.runs/st.knockout.matches).toFixed(1):'0.0'}</td></tr>
+ </table></div></div>
  <div class="card"><h2>Team Stats</h2><div class="tablewrap"><table>
- <tr><th>Team</th><th>Matches</th><th>Runs</th><th>Wkts Lost</th><th>Wkts Taken</th><th>Highest</th></tr>
- ${st.teams.map(x=>`<tr><td><b>${esc(x.team)}</b></td><td>${x.matches}</td><td><b>${x.runs}</b></td><td>${x.wicketsLost}</td><td>${x.wicketsTaken}</td><td>${x.high}</td></tr>`).join('')}
- </table></div></div>`;
+ <tr><th>Team</th><th>P</th><th>W</th><th>L</th><th>T</th><th>Runs</th><th>Avg</th><th>Wkts Lost</th><th>Wkts Taken</th><th>Highest</th><th>Group Avg</th><th>KO Avg</th></tr>
+ ${st.teams.map(x=>`<tr><td><b>${esc(x.team)}</b></td><td>${x.matches}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.ties}</td><td><b>${x.runs}</b></td><td>${x.avg.toFixed(1)}</td><td>${x.wicketsLost}</td><td>${x.wicketsTaken}</td><td>${x.high}</td><td>${x.groupAvg.toFixed(1)}</td><td>${x.koMatches?x.koAvg.toFixed(1):'-'}</td></tr>`).join('')}
+ </table></div></div>
+ ${tournamentSummaryHTML(st)}`;
 }
 function repairTeamIds(){let changed=false;const seen=new Set();(S.teams||[]).forEach((t,i)=>{if(typeof t==='string'){S.teams[i]={id:'T'+(i+1),name:t,group:''};changed=true;return}if(!t.id||seen.has(t.id)){t.id='T'+(i+1);changed=true}seen.add(t.id)});if(changed){S.matches=[];selected=null;save()}}
 function init(){tournamentConfig();repairTeamIds();registerOffline();nav.innerHTML=PAGES.map(p=>`<button id="nav_${p[0]}" onclick="show('${p[0]}')">${p[1]}</button>`).join('');document.getElementById('nav_home').classList.add('active');render()}init();
