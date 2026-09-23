@@ -80,9 +80,22 @@ table{min-width:560px}
  .scoring-grid,.score-buttons{grid-template-columns:repeat(3,minmax(82px,1fr))!important}
 }
 </style>
+<style>
+#presentationView{display:none;position:fixed;inset:0;z-index:500;background:#f4f7f4;color:#101828;overflow:auto;padding:20px}
+#presentationView.on{display:block}
+#presentationView .presHeader{background:#075c36;color:#fff;border-radius:18px;padding:18px 22px;margin-bottom:14px;display:flex;justify-content:space-between;gap:16px;align-items:center}
+#presentationView .presTitle{font-size:34px;font-weight:1000}
+#presentationView .presStage{font-size:20px;font-weight:900;color:#ffd84d}
+#presentationView .presGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#presentationView .card{font-size:18px}
+#presentationView table{min-width:0}
+#presentationView th,#presentationView td{font-size:16px;padding:8px}
+#presentationView .closePres{position:fixed;right:24px;bottom:24px;z-index:510}
+@media(max-width:900px){#presentationView .presGrid{grid-template-columns:1fr}#presentationView .presTitle{font-size:26px}}
+</style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.5 • Restore Point • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.6 • Presentation Mode • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -94,7 +107,7 @@ table{min-width:560px}
 <section id="results" class="page"></section>
 <section id="awards" class="page"></section>
 <section id="settings" class="page"></section>
-</main><div class="saveflag" id="saveflag">Saved locally ✓</div>
+</main><div id="presentationView"></div><div class="saveflag" id="saveflag">Saved locally ✓</div>
 <div id="modal" class="modal"><div id="modalBox" class="modalBox"></div></div><div id="toast" class="toast"></div>
 <script>
 let lastScoreTap=0;
@@ -735,6 +748,40 @@ function winnerPresentation(){
  </div>`;
  modal.classList.add('on');
 }
+function presentationTablesHTML(){
+ const cfg=tournamentConfig(),letters='ABCDEFGH'.slice(0,cfg.groupCount).split('');
+ return letters.map(g=>'<div class="card"><h3>Group '+g+'</h3>'+tableHTML(g)+'</div>').join('');
+}
+function presentationKnockoutHTML(){
+ const groups=[['Quarter Finals',['QF1','QF2','QF3','QF4']],['Semi Finals',['SF1','SF2']],['Final',['FINAL']]];
+ return groups.map(([title,ids])=>{
+  const ms=ids.map(getMatch).filter(Boolean);if(!ms.length)return '';
+  return '<div class="card"><h3>'+title+'</h3>'+ms.map(m=>'<p><b>'+esc(m.id)+'</b> — '+esc(matchName(m))+'<br>'+(m.result?'<b>'+esc(m.result)+'</b>':scoreLine(m))+'</p>').join('')+'</div>';
+ }).join('');
+}
+function renderPresentation(){
+ const box=document.getElementById('presentationView');if(!box)return;
+ const done=S.matches.filter(m=>m.status==='Completed').length,total=S.matches.length||10,pct=total?Math.round(done/total*100):0;
+ const cur=homeCurrentMatch(),completed=S.matches.filter(m=>m.status==='Completed'),latest=completed[completed.length-1]||null;
+ box.innerHTML=`<div class="presHeader"><div><div class="presTitle">${esc(S.meta.name)}</div><div class="presStage">${esc(knockoutProgressText())}</div></div><div><b>${done}/${total}</b> matches complete</div></div>
+ ${S.winner?`<div class="scoreboard"><div class="team">🏆 Champions</div><div class="score">${esc(teamName(S.winner))}</div><div>Runners Up: ${esc(teamName(S.runnerUp))}</div></div>`:''}
+ <div class="presGrid">
+  <div class="card"><h2>Current / Next Match</h2>${cur?`<p style="font-size:28px;font-weight:1000">${esc(cur.id)} — ${esc(matchName(cur))}</p><p style="font-size:22px">${scoreLine(cur)}</p><p><b>${esc(cur.stage)}</b></p>`:'<p>No match waiting.</p>'}</div>
+  <div class="card"><h2>Latest Result</h2>${latest?`<p style="font-size:25px;font-weight:1000">${esc(latest.id)} — ${esc(matchName(latest))}</p><p>${scoreLine(latest)}</p><p style="font-size:22px"><b>${esc(latest.result)}</b></p>`:'<p>No completed matches yet.</p>'}<div class="ballbar"><span style="width:${Math.min(100,pct)}%"></span></div><p><b>${pct}% complete</b></p></div>
+ </div>
+ <div class="presGrid">${presentationTablesHTML()}</div>
+ <div class="presGrid">${presentationKnockoutHTML()}</div>
+ <button class="btn danger closePres" onclick="closePresentation()">Exit Presentation</button>`;
+}
+function openPresentation(){
+ renderPresentation();
+ const box=document.getElementById('presentationView');box.classList.add('on');
+ if(box.requestFullscreen)box.requestFullscreen().catch(()=>{});
+}
+function closePresentation(){
+ const box=document.getElementById('presentationView');box.classList.remove('on');
+ if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+}
 function homeCurrentMatch(){
  const picked=getMatch(selected);
  if(picked&&picked.status!=='Completed')return picked;
@@ -777,7 +824,7 @@ function renderHome(){
  </div>
  <div class="grid">
   <div class="card"><h2>10 Team Format</h2><p>A & B have 3 teams. C & D have 2 teams and play twice.</p><p>Quarter-finals: C1 v A2, next best qualifier v B1, best qualifier v A1, D1 v B2.</p><button class="btn full" onclick="newTournament()">New Tournament</button><br><br><button class="btn yellow full" onclick="show('teams')">Team Setup</button></div>
-  <div class="card"><h2>Quick Links</h2><button class="btn secondary full" onclick="show('tables')">Tables</button><br><br><button class="btn secondary full" onclick="show('knockout')">Knockout</button><br><br><button class="btn secondary full" onclick="show('results')">Results</button><br><br><button class="btn secondary full" onclick="show('awards')">Stats</button></div>
+  <div class="card"><h2>Quick Links</h2><button class="btn yellow full" onclick="openPresentation()">Full-Screen Presentation</button><br><br><button class="btn secondary full" onclick="show('tables')">Tables</button><br><br><button class="btn secondary full" onclick="show('knockout')">Knockout</button><br><br><button class="btn secondary full" onclick="show('results')">Results</button><br><br><button class="btn secondary full" onclick="show('awards')">Stats</button></div>
  </div>`;
 }
 function renderTeams(){let html=`<div class="card"><h2>Teams</h2><textarea id="pasteBox" placeholder="Paste 10 team names, one per line"></textarea><br><br><button class="btn secondary" onclick="pasteTeams()">Paste Teams</button></div><div class="card">`;['A','B','C','D'].forEach(g=>{html+=`<h3>Group ${g}</h3>`;S.teams.filter(t=>t.group===g).forEach(t=>html+=`<label>${t.id}</label><input value="${esc(t.name)}" onchange="team('${t.id}').name=this.value;save();render()">`)});html+=`<br><br><button class="btn full" onclick="generateFixtures()">Generate Fixtures</button></div>`;teams.innerHTML=html}
