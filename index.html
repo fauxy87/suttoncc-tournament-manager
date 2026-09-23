@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.8 • Innings Rotation Fixed • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.9 • Cache Reset • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -546,7 +546,7 @@ function smartReorderExisting(){
  S.matches=[...smartOrderFixtures(groups),...others];
  save();render();alert('Fixture order optimised to give teams a break where possible.');
 }
-function registerOffline(){if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}window.addEventListener('offline',()=>{const f=document.getElementById('saveflag');if(f)f.textContent='OFFLINE • Saved locally ✓'});window.addEventListener('online',()=>{const f=document.getElementById('saveflag');if(f)f.textContent='Online • Saved locally ✓'});}
+function registerOffline(){if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).then(()=>caches.keys()).then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).catch(()=>{});}window.addEventListener('offline',()=>{const f=document.getElementById('saveflag');if(f)f.textContent='OFFLINE • Saved locally ✓'});window.addEventListener('online',()=>{const f=document.getElementById('saveflag');if(f)f.textContent='Online • Saved locally ✓'});}
 
 
 
