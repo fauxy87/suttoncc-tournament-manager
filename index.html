@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.3 • Share Summary • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.4 • Backup Reminders • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -445,7 +445,25 @@ function setBattingFirst(m,teamId){
 function currentInn(m){let idx=m.innings[0].complete?1:0;if(m.innings[1].complete)idx=1;return{inn:m.innings[idx],idx}}
 function nextMatch(){return S.matches.find(m=>m.status!=='Completed')||null}
 function activeMatch(){let sm=getMatch(selected);if(sm&&sm.status!=='Completed')return sm;return nextMatch()}
-function selectMatch(id){selected=id;save();show('score')}
+function openSelectedMatch(id){selected=id;save();show('score')}
+function maybeBackupReminder(id){
+ const m=getMatch(id);if(!m)return openSelectedMatch(id);
+ S.backupReminders=S.backupReminders||{first:false,knockout:false};
+ const noMatchStarted=!S.matches.some(x=>x.status==='In Progress'||x.status==='Completed');
+ const firstReminder=m.stage==='Group'&&noMatchStarted&&!S.backupReminders.first;
+ const knockoutReminder=m.stage==='Quarter Final'&&!S.backupReminders.knockout;
+ if(!firstReminder&&!knockoutReminder)return openSelectedMatch(id);
+ const key=firstReminder?'first':'knockout';
+ const title=firstReminder?'Backup Before First Match':'Backup Before Knockout Stage';
+ const msg=firstReminder?'It is a good idea to save a backup before scoring starts.':'The group stage is complete. Save a backup before starting the quarter-finals?';
+ modalBox.innerHTML=`<h2>${title}</h2><p>${msg}</p>
+ <button type="button" class="btn full" id="backupContinue">Download Backup &amp; Continue</button><br><br>
+ <button type="button" class="btn secondary full" id="skipBackup">Continue Without Backup</button>`;
+ modal.classList.add('on');
+ document.getElementById('backupContinue').onclick=()=>{S.backupReminders[key]=true;save();backup();closeModal();openSelectedMatch(id)};
+ document.getElementById('skipBackup').onclick=()=>{S.backupReminders[key]=true;save();closeModal();openSelectedMatch(id)};
+}
+function selectMatch(id){maybeBackupReminder(id)}
 function snapshot(m){snapshotMatch(m);m.snap=JSON.stringify({innings:m.innings,status:m.status,winner:m.winner,result:m.result,locked:m.locked});m.status='In Progress'}
 function undo(){undoMatch();}
 function scoreBall(kind,runs=0,opts={}){const now=Date.now();if(now-lastScoreTap<350)return;lastScoreTap=now;const m=activeMatch();if(!m||m.locked)return;const {inn,idx}=currentInn(m);if(inn.complete)return;snapshot(m);const before=inn.runs;
