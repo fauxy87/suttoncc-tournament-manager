@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.1 • Settings Render Fixed • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.2 • Settings Data Fix • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -105,11 +105,19 @@ let S=load()||fresh();let selected=S.selected||null;
 
 
 function tournamentConfig(){
- S.config=S.config||{teamCount:10,groupCount:4,groupSizes:[3,3,2,2],preset:'sutton10',qualifyPerGroup:1,bestRemaining:4,knockoutSize:8};
- if(S.config.qualifyPerGroup==null)S.config.qualifyPerGroup=1;
- if(S.config.bestRemaining==null)S.config.bestRemaining=4;
- if(S.config.knockoutSize==null)S.config.knockoutSize=8;
- return S.config;
+ S.config=S.config||{};
+ const c=S.config;
+ c.teamCount=Math.max(2,Number(c.teamCount||((S.teams||[]).length)||10));
+ c.groupCount=Math.max(1,Math.min(8,Number(c.groupCount||4)));
+ if(!Array.isArray(c.groupSizes)||c.groupSizes.length<c.groupCount||c.groupSizes.slice(0,c.groupCount).reduce((a,b)=>a+Number(b||0),0)!==c.teamCount){
+   if(c.teamCount===10&&c.groupCount===4)c.groupSizes=[3,3,2,2];
+   else c.groupSizes=balancedSizes(c.teamCount,c.groupCount);
+ }
+ if(!c.preset)c.preset=(c.teamCount===10&&c.groupCount===4&&c.groupSizes.join(',')==='3,3,2,2')?'sutton10':'custom';
+ if(c.qualifyPerGroup==null)c.qualifyPerGroup=1;
+ if(c.bestRemaining==null)c.bestRemaining=(c.preset==='sutton10'?4:Math.max(0,8-c.groupCount));
+ if(c.knockoutSize==null)c.knockoutSize=8;
+ return c;
 }
 function balancedSizes(teamCount,groupCount){
  const a=Array(groupCount).fill(Math.floor(teamCount/groupCount));
