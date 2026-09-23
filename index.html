@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.0 • Full Tournament Stats • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.1 • Match Day Dashboard • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -623,7 +623,51 @@ function renderSettings(){const c=tournamentConfig();settings.innerHTML=`
 function backup(){download(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),'SuttonCC_10team_backup.json')}
 function restoreFile(file){const r=new FileReader();r.onload=()=>{S=JSON.parse(r.result);selected=S.selected;save();render();toast('Restored')};r.readAsText(file)}
 function render(){document.getElementById('title').textContent=S.meta.name;progressKO();renderHome();renderTeams();renderFixtures();renderScore();renderTables();renderKnockout();renderResults();renderAwards();renderSettings()}
-function renderHome(){const done=S.matches.filter(m=>m.status==='Completed').length,total=S.matches.length||10,nxt=nextMatch();home.innerHTML=`${S.lastFinished?`<div class="card notice"><h2>✅ Last Game Finished</h2><p><b>${esc(S.lastFinished)}</b></p></div>`:''}${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div><div>Runners Up: ${teamName(S.runnerUp)}</div></div>`:''}<div class="grid"><div class="card"><h2>10 Team Format</h2><p>A & B have 3 teams. C & D have 2 teams and play twice.</p><p>Quarter-finals: C1 v A2, D1 v B2, best qualifier v A1, next best qualifier v B1.</p><button class="btn full" onclick="newTournament()">New Tournament</button><br><br><button class="btn yellow full" onclick="show('teams')">Team Setup</button></div><div class="card"><h2>Progress</h2><p><span class="badge done">${done}/${total} completed</span></p>${nxt?`<p><b>Next:</b> ${nxt.id} ${matchName(nxt)}</p><button class="btn secondary" onclick="selectMatch('${nxt.id}')">Open Next</button>`:'<p>No matches left.</p>'}</div></div>`}
+function homeCurrentMatch(){
+ const picked=getMatch(selected);
+ if(picked&&picked.status!=='Completed')return picked;
+ return S.matches.find(m=>m.status==='In Progress')||nextMatch();
+}
+function knockoutProgressText(){
+ const q=S.matches.filter(m=>m.stage==='Quarter Final'),s=S.matches.filter(m=>m.stage==='Semi Final'),f=getMatch('FINAL');
+ if(S.winner)return 'Tournament complete';
+ if(f)return f.status==='Completed'?'Final complete':'Final';
+ if(s.length)return s.every(m=>m.status==='Completed')?'Semi-finals complete':'Semi-finals';
+ if(q.length)return q.every(m=>m.status==='Completed')?'Quarter-finals complete':'Quarter-finals';
+ return groupComplete()?'Group stage complete':'Group stage';
+}
+function renderHome(){
+ const done=S.matches.filter(m=>m.status==='Completed').length,total=S.matches.length||10;
+ const cur=homeCurrentMatch(),nxt=nextMatch();
+ const pct=total?Math.round(done/total*100):0;
+ const completed=[...S.matches].filter(m=>m.status==='Completed');
+ const latest=completed.length?completed[completed.length-1]:null;
+ home.innerHTML=`
+ ${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${esc(teamName(S.winner))}</div><div>Runners Up: ${esc(teamName(S.runnerUp))}</div></div>`:''}
+ <div class="card"><h2>🏏 Match-Day Dashboard</h2>
+  <div class="grid">
+   <div class="card"><h3>Current / Next Match</h3>
+    ${cur?`<p><span class="badge ${cur.status==='In Progress'?'live':''}">${esc(cur.stage)}</span></p><p style="font-size:22px;font-weight:900">${esc(cur.id)} — ${esc(matchName(cur))}</p><p>${scoreLine(cur)}</p><button class="btn yellow full" onclick="selectMatch('${cur.id}')">${cur.status==='In Progress'?'Continue Scoring':'Open Match'}</button>`:'<p>No match waiting.</p>'}
+   </div>
+   <div class="card"><h3>Latest Result</h3>
+    ${latest?`<p style="font-size:20px;font-weight:900">${esc(latest.id)} — ${esc(matchName(latest))}</p><p>${scoreLine(latest)}</p><p><b>${esc(latest.result)}</b></p>`:'<p>No completed matches yet.</p>'}
+   </div>
+   <div class="card"><h3>Tournament Progress</h3>
+    <p><span class="badge done">${done}/${total} completed</span></p>
+    <div class="ballbar"><span style="width:${Math.min(100,pct)}%"></span></div>
+    <p><b>${pct}% complete</b></p><p>${esc(knockoutProgressText())}</p>
+   </div>
+   <div class="card"><h3>Next Up</h3>
+    ${nxt?`<p><b>${esc(nxt.id)}</b> — ${esc(matchName(nxt))}</p><p>${esc(nxt.stage)}</p>`:'<p>All scheduled matches are complete.</p>'}
+    <button class="btn secondary full" onclick="show('fixtures')">View Fixtures</button>
+   </div>
+  </div>
+ </div>
+ <div class="grid">
+  <div class="card"><h2>10 Team Format</h2><p>A & B have 3 teams. C & D have 2 teams and play twice.</p><p>Quarter-finals: C1 v A2, next best qualifier v B1, best qualifier v A1, D1 v B2.</p><button class="btn full" onclick="newTournament()">New Tournament</button><br><br><button class="btn yellow full" onclick="show('teams')">Team Setup</button></div>
+  <div class="card"><h2>Quick Links</h2><button class="btn secondary full" onclick="show('tables')">Tables</button><br><br><button class="btn secondary full" onclick="show('knockout')">Knockout</button><br><br><button class="btn secondary full" onclick="show('results')">Results</button><br><br><button class="btn secondary full" onclick="show('awards')">Stats</button></div>
+ </div>`;
+}
 function renderTeams(){let html=`<div class="card"><h2>Teams</h2><textarea id="pasteBox" placeholder="Paste 10 team names, one per line"></textarea><br><br><button class="btn secondary" onclick="pasteTeams()">Paste Teams</button></div><div class="card">`;['A','B','C','D'].forEach(g=>{html+=`<h3>Group ${g}</h3>`;S.teams.filter(t=>t.group===g).forEach(t=>html+=`<label>${t.id}</label><input value="${esc(t.name)}" onchange="team('${t.id}').name=this.value;save();render()">`)});html+=`<br><br><button class="btn full" onclick="generateFixtures()">Generate Fixtures</button></div>`;teams.innerHTML=html}
 function fixture(m){let txt=m.status==='Completed'?'✅ Complete':m.innings[0].complete?'🟡 2nd innings':m.status==='In Progress'?'🔴 Live':'⚪ Not started';return `<div class="fixture ${selected===m.id?'current':''}"><div class="id">${m.id}<br><span class="muted">${m.stage}</span></div><div><b>${matchName(m)}</b><br><span class="muted">${txt}</span><br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}<br>${m.status!=='Completed'?`<button class="btn secondary" onclick="selectMatch('${m.id}')">Score</button>`:''}</div></div>`}
 function unlockMatch(id){
