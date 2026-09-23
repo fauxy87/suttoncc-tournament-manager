@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.3 • Paired Quarter Finals • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.4 • Touch Confirm Fix • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -368,7 +368,17 @@ function maxBalls(m){return m.stage==='Group'?18:24}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display='none',1400)}
 function closeModal(){document.getElementById('modal').classList.remove('on')}
-function confirmBox(title,msg,yes){modalBox.innerHTML=`<h2>${title}</h2><p>${msg}</p><button class="btn danger full" id="yesBtn">YES</button><br><br><button class="btn secondary full" onclick="closeModal()">NO</button>`;modal.classList.add('on');yesBtn.onclick=()=>{closeModal();yes()}}
+function confirmBox(title,msg,yes){
+ modalBox.innerHTML=`<h2>${title}</h2><p>${msg}</p><button type="button" class="btn danger full" id="yesBtn">YES</button><br><br><button type="button" class="btn secondary full" id="noBtn">NO</button>`;
+ modal.classList.add('on');
+ const y=document.getElementById('yesBtn'),n=document.getElementById('noBtn');
+ const accept=(e)=>{if(e)e.preventDefault();closeModal();setTimeout(()=>yes(),0)};
+ const reject=(e)=>{if(e)e.preventDefault();closeModal()};
+ y.addEventListener('click',accept,{once:true});
+ y.addEventListener('touchend',accept,{once:true,passive:false});
+ n.addEventListener('click',reject,{once:true});
+ n.addEventListener('touchend',reject,{once:true,passive:false});
+}
 function choiceBox(title,opts,cb){modalBox.innerHTML=`<h2>${title}</h2><div class="choicegrid">${opts.map(o=>`<button data-v="${o}">${o}</button>`).join('')}</div><br><button class="btn secondary full" onclick="closeModal()">Cancel</button>`;modal.classList.add('on');modalBox.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{closeModal();cb(Number(b.dataset.v))})}
 function show(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));document.getElementById('nav_'+id).classList.add('active');render()}
 function status(m){return `<span class="badge ${m.status==='Completed'?'done':m.status==='In Progress'?'live':m.stage==='Group'?'':'ko'}">${m.status}</span>`}
