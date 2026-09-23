@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.2 • Settings Data Fix • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.3 • Team IDs Fixed • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -176,7 +176,7 @@ function saveGroupTeams(){
  if(new Set(lower).size!==lower.length){alert('Each team name must be unique.');return;}
  if((S.matches||[]).some(m=>m.status==='Completed') && !confirm('Matches have already been completed. Changing the groups can affect the tournament. Continue?'))return;
  if((S.matches||[]).length && !(S.matches||[]).some(m=>m.status==='Completed') && !confirm('Changing team groups will clear the current fixtures. Continue?'))return;
- S.teams=inputs.map(x=>({name:x.value.trim(),group:x.dataset.group}));
+ S.teams=inputs.map((x,i)=>({id:'T'+(i+1),name:x.value.trim(),group:x.dataset.group}));
  S.matches=[];selected=null;save();render();
  alert('Groups saved. You can now generate the fixtures.');
 }
