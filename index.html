@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.4 • Backup Reminders • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.5 • Restore Point • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -637,9 +637,39 @@ function nextActiveMatch(){
 function renderSettings(){const c=tournamentConfig();settings.innerHTML=`
 <div class="card"><h2>Settings</h2><label>Tournament name</label><input value="${esc(S.meta.name)}" onchange="S.meta.name=this.value;save();render()"><label>Date</label><input type="date" value="${esc(S.meta.date||'')}" onchange="S.meta.date=this.value;save()"><label>Venue</label><input value="${esc(S.meta.venue)}" onchange="S.meta.venue=this.value;save();render()"></div>
 <div class="card"><h2>🏏 Tournament Setup</h2><p class="notice"><b>Start here:</b> choose the number of teams and groups, then enter the teams into their pre-drawn groups.</p><div class="setupgrid"><label>Number of teams<input id="cfgTeams" type="number" min="2" max="32" value="${c.teamCount}"></label><label>Number of groups<input id="cfgGroups" type="number" min="1" max="8" value="${c.groupCount}"></label></div><button class="btn yellow" onclick="configureTournament()">Apply Teams & Groups</button><hr><h3>Group sizes</h3><div class="setupgrid">${groupSizeInputs()}</div><button class="btn" onclick="saveGroupSizes()">Save Group Sizes</button> <button class="btn secondary" onclick="resetBalancedGroups()">Make Groups Even</button><hr><h3>Qualification</h3><div class="setupgrid"><label>Automatic qualifiers per group<input id="cfgQualify" type="number" min="1" value="${c.qualifyPerGroup}"></label><label>Best remaining teams<input id="cfgBestRemaining" type="number" min="0" value="${c.bestRemaining}"></label><label>Knockout size<select id="cfgKnockoutSize"><option value="2" ${c.knockoutSize==2?'selected':''}>2 – Final</option><option value="4" ${c.knockoutSize==4?'selected':''}>4 – Semi-finals</option><option value="8" ${c.knockoutSize==8?'selected':''}>8 – Quarter-finals</option></select></label></div><button class="btn" onclick="saveQualificationSetup()">Save Qualification Setup</button><hr><h3>Teams in Groups</h3>${groupEditorHTML()}<button class="btn yellow full" onclick="saveGroupTeams()">Save Groups</button><br><br><button class="btn full" onclick="generateFixtures()">Generate Fixtures</button></div>
-<div class="card"><h2>Backup</h2><button class="btn" onclick="backup()">Export Backup</button><br><br><input type="file" onchange="restoreFile(this.files[0])"></div><div class="card"><button class="btn danger full" onclick="newTournament()">New Tournament / Clear All</button></div>`}
+<div class="card"><h2>Backup</h2><button class="btn" onclick="backup()">Export Backup</button><br><br><input type="file" onchange="restoreFile(this.files[0])"></div><div class="card"><h2>Restore Point</h2><p>Save one local snapshot of the entire tournament before a risky change.</p>${restorePointHTML()}</div><div class="card"><button class="btn danger full" onclick="newTournament()">New Tournament / Clear All</button></div>`}
+const RESTORE_STORE='scc_10team_restore_point';
 function backup(){download(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),'SuttonCC_10team_backup.json')}
 function restoreFile(file){const r=new FileReader();r.onload=()=>{S=JSON.parse(r.result);selected=S.selected;save();render();toast('Restored')};r.readAsText(file)}
+function getRestorePoint(){try{return JSON.parse(localStorage.getItem(RESTORE_STORE))}catch(e){return null}}
+function restorePointHTML(){
+ const rp=getRestorePoint();
+ if(!rp)return '<p class="muted">No restore point saved yet.</p><button class="btn yellow full" onclick="createRestorePoint()">Create Restore Point</button>';
+ let when='Saved restore point';
+ try{when=new Date(rp.savedAt).toLocaleString()}catch(e){}
+ return '<p><b>Restore point:</b> '+esc(when)+'</p><button class="btn yellow full" onclick="createRestorePoint()">Replace Restore Point</button><br><br><button class="btn secondary full" onclick="restoreTournamentPoint()">Restore Saved Point</button><br><br><button class="btn danger full" onclick="deleteRestorePoint()">Delete Restore Point</button>';
+}
+function createRestorePoint(){
+ const existing=getRestorePoint();
+ const go=()=>{
+  const snap={savedAt:new Date().toISOString(),state:JSON.parse(JSON.stringify(S))};
+  try{localStorage.setItem(RESTORE_STORE,JSON.stringify(snap));renderSettings();toast('Restore point saved')}catch(e){alert('Could not save the restore point on this device.')}
+ };
+ if(existing)confirmBox('Replace Restore Point','Replace the existing restore point with the tournament exactly as it is now?',go);
+ else confirmBox('Create Restore Point','Save the tournament exactly as it is now so you can roll back to it later?',go);
+}
+function restoreTournamentPoint(){
+ const rp=getRestorePoint();if(!rp||!rp.state){alert('No restore point is available.');return;}
+ confirmBox('Restore Tournament','Restore the saved tournament state? Your current unsaved state will be replaced.',()=>{
+  S=JSON.parse(JSON.stringify(rp.state));selected=S.selected||null;save();render();toast('Restore point restored');
+ });
+}
+function deleteRestorePoint(){
+ if(!getRestorePoint())return;
+ confirmBox('Delete Restore Point','Permanently delete the saved restore point?',()=>{
+  localStorage.removeItem(RESTORE_STORE);renderSettings();toast('Restore point deleted');
+ });
+}
 function render(){document.getElementById('title').textContent=S.meta.name;progressKO();renderHome();renderTeams();renderFixtures();renderScore();renderTables();renderKnockout();renderResults();renderAwards();renderSettings()}
 function completeTournament(){
  const f=getMatch('FINAL');
