@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.2 • Tournament Complete • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.3 • Share Summary • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -635,6 +635,36 @@ function unlockTournament(){
   S.tournamentLocked=false;save();render();toast('Tournament unlocked');
  });
 }
+function tournamentShareText(){
+ const st=stats(),f=getMatch('FINAL');
+ const lines=[
+  S.meta.name+' – Final Summary',
+  '',
+  S.winner?'🏆 Winners: '+teamName(S.winner):'',
+  S.runnerUp?'🥈 Runners-up: '+teamName(S.runnerUp):'',
+  '🏏 Total Runs: '+st.tr,
+  '🎯 Total Wickets: '+st.tw,
+  st.high?'🔥 Highest Score: '+st.high.team+' – '+st.high.runs+'/'+st.high.wickets:'',
+  st.topRuns?'📊 Top Scoring Team: '+st.topRuns.team+' – '+st.topRuns.runs+' runs':'',
+  f&&f.result?'🏆 Final: '+f.result:'',
+  '',
+  'Knockout Results'
+ ];
+ ['QF1','QF2','QF3','QF4','SF1','SF2','FINAL'].forEach(id=>{
+  const m=getMatch(id);if(m&&m.status==='Completed')lines.push(id+': '+m.result);
+ });
+ return lines.filter((x,i)=>x!==''||lines[i-1]!=='').join('\n').trim();
+}
+async function copyTournamentSummary(){
+ const txt=tournamentShareText();
+ try{
+  await navigator.clipboard.writeText(txt);
+  toast('Tournament summary copied');
+ }catch(e){
+  modalBox.innerHTML=`<h2>Copy Tournament Summary</h2><textarea id="shareSummaryBox" style="min-height:320px">${esc(txt)}</textarea><br><br><button class="btn full" onclick="document.getElementById('shareSummaryBox').select()">Select Text</button><br><br><button class="btn secondary full" onclick="closeModal()">Close</button>`;
+  modal.classList.add('on');
+ }
+}
 function winnerPresentation(){
  if(!S.winner){alert('The tournament winner has not been decided yet.');return;}
  const st=stats(),f=getMatch('FINAL');
@@ -651,6 +681,7 @@ function winnerPresentation(){
   </div>
   <p><b>Highest Score:</b> ${st.high?esc(st.high.team)+' '+st.high.runs+'/'+st.high.wickets:'-'}</p>
   <p><b>Top Scoring Team:</b> ${st.topRuns?esc(st.topRuns.team)+' — '+st.topRuns.runs+' runs':'-'}</p>
+  <button type="button" class="btn full" onclick="copyTournamentSummary()">Copy Tournament Summary</button><br><br>
   <button type="button" class="btn full" onclick="window.print()">Print / Save</button><br><br>
   <button type="button" class="btn secondary full" onclick="closeModal()">Close</button>
  </div>`;
