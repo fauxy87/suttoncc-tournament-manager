@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.6 • Semi Final Pairing • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.4.7 • Quarter Final Order • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -526,7 +526,7 @@ function progressKO(){
    const A=rankGroup('A'),B=rankGroup('B'),C=rankGroup('C'),D=rankGroup('D');
    const wild=rankedList([A[2]?.id,B[2]?.id,C[1]?.id,D[1]?.id].filter(Boolean)).slice(0,2);
    if(A.length>=2&&B.length>=2&&C.length>=1&&D.length>=1&&wild.length>=2){
-    S.matches.push(newMatch('QF1','Quarter Final',C[0].id,A[1].id),newMatch('QF2','Quarter Final',D[0].id,B[1].id),newMatch('QF3','Quarter Final',wild[0].id,A[0].id),newMatch('QF4','Quarter Final',wild[1].id,B[0].id));
+    S.matches.push(newMatch('QF1','Quarter Final',C[0].id,A[1].id),newMatch('QF2','Quarter Final',wild[1].id,B[0].id),newMatch('QF3','Quarter Final',wild[0].id,A[0].id),newMatch('QF4','Quarter Final',D[0].id,B[1].id));
    }
   }else{
    const letters='ABCDEFGH'.slice(0,cfg.groupCount).split(''),fixed=[],remaining=[];
@@ -573,7 +573,7 @@ function renderKnockout(){
  progressKO();
  const cfg=tournamentConfig();
  const groups=[['Quarter Finals',['QF1','QF2','QF3','QF4']],['Semi Finals',['SF1','SF2']],['Final',['FINAL']]];
- const format=cfg.preset==='sutton10'?'<div class="card"><h2>Quarter Final Format</h2><p>QF1: C1 v A2<br>QF2: D1 v B2<br>QF3: Best qualifier v A1<br>QF4: Next best qualifier v B1</p></div>':'';
+ const format=cfg.preset==='sutton10'?'<div class="card"><h2>Quarter Final Format</h2><p>QF1: C1 v A2<br>QF2: Next best qualifier v B1<br>QF3: Best qualifier v A1<br>QF4: D1 v B2</p></div>':'';
  knockout.innerHTML=format+(S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${teamName(S.winner)}</div></div>`:'')+
  `<div class="grid">${groups.map(([title,ids])=>{const existing=ids.filter(id=>getMatch(id));if(!existing.length)return '';return `<div class="card"><h2>${title}</h2>${existing.map(id=>{let m=getMatch(id);return `<div class="fixture"><div class="id">${id}</div><div>${matchName(m)}<br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}${m.status!=='Completed'?`<br><button class="btn secondary" onclick="selectMatch('${id}')">Score</button>`:''}${bowlOffHTML(m)}</div></div>`}).join('')}</div>`}).join('')}</div>`;
 }
