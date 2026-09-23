@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.4 • Saved Data Repaired • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.3.5 • Lost Ball Rule Fixed • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -439,7 +439,7 @@ function scoreBall(kind,runs=0,opts={}){const now=Date.now();if(now-lastScoreTap
  if(kind==='sixout'){inn.runs+=6;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('6 OUT')}
  if(kind==='wicket'){inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('W')}
  if(kind==='extra'){inn.runs+=2+runs;let finalOver=inn.balls>=maxBalls(m)-6;if(!finalOver)inn.balls++;inn.log.push(`${opts.label}+${runs}=${2+runs}${finalOver?' extra ball':''}`)}
- if(kind==='lost6'){inn.runs=Math.max(0,inn.runs-16);inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('Lost 6: -16 + W')}
+ if(kind==='lost6'){inn.runs-=10;inn.wickets=Math.min(6,inn.wickets+1);inn.balls++;inn.log.push('Lost Ball 6: -10 + W')}
  if(inn.balls>maxBalls(m))inn.balls=maxBalls(m);toast(inn.runs-before>=0?`+${inn.runs-before}`:`${inn.runs-before}`);checkEnd(m,idx)}
 function checkEnd(m,idx){const inn=m.innings[idx];if(idx===0){if(inn.wickets>=6||inn.balls>=maxBalls(m)){inn.complete=true;m.innings[1].bat=m.innings[0].bat===m.a?m.b:m.a;toast('1st innings finished')}save();render();return}const target=m.innings[0].runs+1;if(inn.runs>=target){inn.complete=true;finish(m,true);return}if(inn.wickets>=6||inn.balls>=maxBalls(m)){inn.complete=true;finish(m,true);return}save();render()}
 function finish(m,auto=false){if(!m||m.locked)return;if(!auto&&!confirm('Finish and lock this match?'))return;const a=m.innings[0],b=m.innings[1];a.complete=true;b.complete=true;m.status='Completed';m.locked=true;if(a.runs>b.runs){m.winner=a.bat;m.result=`${teamName(a.bat)} beat ${teamName(b.bat)} by ${a.runs-b.runs} runs`}else if(b.runs>a.runs){m.winner=b.bat;m.result=`${teamName(b.bat)} beat ${teamName(a.bat)} by ${6-b.wickets} wickets`}else{m.winner=null;m.result=`${teamName(a.bat)} tied with ${teamName(b.bat)}${m.stage==='Group'?'':' - Bowl Off required'}`}progressKO();S.lastFinished=m.result;const nxt=nextMatch();selected=nxt?nxt.id:null;save();render();showFinished(m.result)}
@@ -447,7 +447,7 @@ function showFinished(result){modalBox.innerHTML=`<h2>✅ Game Finished</h2><p s
 function endInn(){const m=activeMatch();if(!m)return;confirmBox('End innings','End this innings?',()=>{const ci=currentInn(m);snapshot(m);ci.inn.complete=true;if(ci.idx===0)m.innings[1].bat=m.innings[0].bat===m.a?m.b:m.a;else finish(m,true);save();render()})}
 function extra(label){choiceBox(`${label}: runs completed`,[0,1,2,3,4,6],r=>scoreBall('extra',r,{label}))}
 function quickExtra(label,r){scoreBall('extra',r,{label})}
-function lost6(){confirmBox('Lost Ball Six','Apply -16 runs and wicket?',()=>scoreBall('lost6'))}
+function lost6(){confirmBox('Lost Ball Six','Do not add the 6. Deduct 10 runs and add a wicket?',()=>scoreBall('lost6'))}
 
 function tableRows(){let r={};S.teams.forEach(t=>r[t.id]={id:t.id,group:t.group,P:0,W:0,L:0,T:0,Pts:0,RF:0,BF:0,RA:0,BA:0,NRR:0});S.matches.filter(m=>m.stage==='Group'&&m.status==='Completed').forEach(m=>{const a=m.innings[0],b=m.innings[1];[[a,b],[b,a]].forEach(([x,y])=>{let q=r[x.bat];const xBalls=x.wickets>=6?maxBalls(m):Math.max(1,x.balls),yBalls=y.wickets>=6?maxBalls(m):Math.max(1,y.balls);q.P++;q.RF+=x.runs;q.BF+=xBalls;q.RA+=y.runs;q.BA+=yBalls});if(m.winner){r[m.winner].W++;r[m.winner].Pts+=2;r[m.winner===a.bat?b.bat:a.bat].L++}else{[a.bat,b.bat].forEach(id=>{r[id].T++;r[id].Pts++})}});Object.values(r).forEach(x=>x.NRR=(x.RF/(x.BF/6||1))-(x.RA/(x.BA/6||1)));return r}
 function rankGroup(g){const r=tableRows();return S.teams.filter(t=>t.group===g).map(t=>r[t.id]).sort((a,b)=>b.Pts-a.Pts||b.NRR-a.NRR||b.RF-a.RF||teamName(a.id).localeCompare(teamName(b.id)))}
