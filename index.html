@@ -82,7 +82,7 @@ table{min-width:560px}
 </style>
 </head>
 <body>
-<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.1 • Match Day Dashboard • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
+<header><h1 id="title">Sutton CC Sponsors' 6-A-Side</h1><div class="sub">v7.5.2 • Tournament Complete • Offline Ready • Flexible teams & groups • A/B groups of 3 • C/D groups of 2 • custom quarter-finals • batting choice</div></header>
 <nav id="nav"></nav>
 <main>
 <section id="home" class="page active"></section>
@@ -623,6 +623,39 @@ function renderSettings(){const c=tournamentConfig();settings.innerHTML=`
 function backup(){download(new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),'SuttonCC_10team_backup.json')}
 function restoreFile(file){const r=new FileReader();r.onload=()=>{S=JSON.parse(r.result);selected=S.selected;save();render();toast('Restored')};r.readAsText(file)}
 function render(){document.getElementById('title').textContent=S.meta.name;progressKO();renderHome();renderTeams();renderFixtures();renderScore();renderTables();renderKnockout();renderResults();renderAwards();renderSettings()}
+function completeTournament(){
+ const f=getMatch('FINAL');
+ if(!f||f.status!=='Completed'||!S.winner){alert('The final must be completed before the tournament can be locked.');return;}
+ confirmBox('Complete Tournament','Lock the completed tournament? Results will stay read-only until you unlock the tournament.',()=>{
+  S.tournamentLocked=true;save();render();toast('Tournament locked');
+ });
+}
+function unlockTournament(){
+ confirmBox('Unlock Tournament','Unlock the tournament so completed results can be edited again?',()=>{
+  S.tournamentLocked=false;save();render();toast('Tournament unlocked');
+ });
+}
+function winnerPresentation(){
+ if(!S.winner){alert('The tournament winner has not been decided yet.');return;}
+ const st=stats(),f=getMatch('FINAL');
+ modalBox.innerHTML=`<div style="text-align:center;padding:10px">
+  <div style="font-size:54px">🏆</div>
+  <h2 style="font-size:30px;margin:6px 0">Tournament Winners</h2>
+  <div style="font-size:40px;font-weight:1000;color:var(--green);margin:14px 0">${esc(teamName(S.winner))}</div>
+  <p style="font-size:20px"><b>Runners Up:</b> ${S.runnerUp?esc(teamName(S.runnerUp)):'-'}</p>
+  ${f?`<p><b>Final:</b><br>${scoreLine(f)}<br><b>${esc(f.result||'')}</b></p>`:''}
+  <hr>
+  <div class="grid">
+   <div><b>Total Runs</b><div style="font-size:28px;font-weight:900">${st.tr}</div></div>
+   <div><b>Total Wickets</b><div style="font-size:28px;font-weight:900">${st.tw}</div></div>
+  </div>
+  <p><b>Highest Score:</b> ${st.high?esc(st.high.team)+' '+st.high.runs+'/'+st.high.wickets:'-'}</p>
+  <p><b>Top Scoring Team:</b> ${st.topRuns?esc(st.topRuns.team)+' — '+st.topRuns.runs+' runs':'-'}</p>
+  <button type="button" class="btn full" onclick="window.print()">Print / Save</button><br><br>
+  <button type="button" class="btn secondary full" onclick="closeModal()">Close</button>
+ </div>`;
+ modal.classList.add('on');
+}
 function homeCurrentMatch(){
  const picked=getMatch(selected);
  if(picked&&picked.status!=='Completed')return picked;
@@ -643,7 +676,7 @@ function renderHome(){
  const completed=[...S.matches].filter(m=>m.status==='Completed');
  const latest=completed.length?completed[completed.length-1]:null;
  home.innerHTML=`
- ${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${esc(teamName(S.winner))}</div><div>Runners Up: ${esc(teamName(S.runnerUp))}</div></div>`:''}
+ ${S.winner?`<div class="scoreboard"><div class="team">🏆 Winners</div><div class="score">${esc(teamName(S.winner))}</div><div>Runners Up: ${esc(teamName(S.runnerUp))}</div><br><button class="btn yellow" onclick="winnerPresentation()">Winner Presentation</button> ${S.tournamentLocked?'<button class="btn secondary" onclick="unlockTournament()">Unlock Tournament</button>':'<button class="btn" onclick="completeTournament()">Complete Tournament</button>'}<div style="margin-top:10px"><span class="badge ${S.tournamentLocked?'done':'live'}">${S.tournamentLocked?'Tournament Locked':'Tournament Finished — Not Locked'}</span></div></div>`:''}
  <div class="card"><h2>🏏 Match-Day Dashboard</h2>
   <div class="grid">
    <div class="card"><h3>Current / Next Match</h3>
@@ -671,6 +704,7 @@ function renderHome(){
 function renderTeams(){let html=`<div class="card"><h2>Teams</h2><textarea id="pasteBox" placeholder="Paste 10 team names, one per line"></textarea><br><br><button class="btn secondary" onclick="pasteTeams()">Paste Teams</button></div><div class="card">`;['A','B','C','D'].forEach(g=>{html+=`<h3>Group ${g}</h3>`;S.teams.filter(t=>t.group===g).forEach(t=>html+=`<label>${t.id}</label><input value="${esc(t.name)}" onchange="team('${t.id}').name=this.value;save();render()">`)});html+=`<br><br><button class="btn full" onclick="generateFixtures()">Generate Fixtures</button></div>`;teams.innerHTML=html}
 function fixture(m){let txt=m.status==='Completed'?'✅ Complete':m.innings[0].complete?'🟡 2nd innings':m.status==='In Progress'?'🔴 Live':'⚪ Not started';return `<div class="fixture ${selected===m.id?'current':''}"><div class="id">${m.id}<br><span class="muted">${m.stage}</span></div><div><b>${matchName(m)}</b><br><span class="muted">${txt}</span><br><span class="muted">${m.result||scoreLine(m)}</span></div><div>${status(m)}<br>${m.status!=='Completed'?`<button class="btn secondary" onclick="selectMatch('${m.id}')">Score</button>`:''}</div></div>`}
 function unlockMatch(id){
+ if(S.tournamentLocked){alert('Tournament is locked. Unlock the tournament first to edit completed results.');return;}
  const m=getMatch(id);if(!m||m.status!=='Completed')return;
  let warning='Unlock '+m.id+' - '+matchName(m)+' for editing? The saved score will be kept, but the result will be removed until you confirm the match again.';
  if(m.stage==='Group'&&S.matches.some(x=>x.stage!=='Group'))warning+=' This will also clear the knockout fixtures/results because qualification may change.';
